@@ -1,4 +1,4 @@
-import { SentimentResult } from "./sentiment.entity";
+import { SentimentResult } from "./sentiment.entity.js";
 
 export interface SentimentAnalyzer {
   analyze(text: string): Promise<SentimentResult>;

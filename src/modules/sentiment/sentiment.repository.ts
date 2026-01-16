@@ -1,4 +1,4 @@
-import { SentimentJob } from "./sentiment.entity";
+import { SentimentJob } from "./sentiment.entity.js";
 
 export interface SentimentJobRepository {
   create(reviewId: string): Promise<SentimentJob>;

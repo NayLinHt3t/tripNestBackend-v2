@@ -1,6 +1,6 @@
-import { PrismaClient } from "../database/prisma";
-import { SentimentJob, JobStatus } from "./sentiment.entity";
-import { SentimentJobRepository } from "./sentiment.repository";
+import { PrismaClient } from "../database/prisma.js";
+import { SentimentJob, JobStatus } from "./sentiment.entity.js";
+import { SentimentJobRepository } from "./sentiment.repository.js";
 
 export class PrismaSentimentJobRepository implements SentimentJobRepository {
   constructor(private prisma: PrismaClient) {}
@@ -32,7 +32,9 @@ export class PrismaSentimentJobRepository implements SentimentJobRepository {
       orderBy: { createdAt: "asc" },
       take: limit,
     });
-    return jobs.map((job) => this.mapToEntity(job));
+    return jobs.map((job: Parameters<typeof this.mapToEntity>[0]) =>
+      this.mapToEntity(job)
+    );
   }
 
   async markProcessing(id: string): Promise<SentimentJob | null> {

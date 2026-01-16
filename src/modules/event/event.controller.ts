@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { EventService } from "./event.service";
+import { EventService } from "./event.service.js";
 
 export function createEventRouter(eventService: EventService): Router {
   const router = Router();

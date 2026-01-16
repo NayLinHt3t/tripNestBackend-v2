@@ -1,6 +1,6 @@
-import { Review, CreateReviewDto, UpdateReviewDto } from "./review.entity";
-import { ReviewRepository } from "./review.repository";
-import { SentimentService } from "../sentiment/sentiment.service";
+import { Review, CreateReviewDto, UpdateReviewDto } from "./review.entity.js";
+import { ReviewRepository } from "./review.repository.js";
+import { SentimentService } from "../sentiment/sentiment.service.js";
 
 export class ReviewService {
   private sentimentService?: SentimentService;

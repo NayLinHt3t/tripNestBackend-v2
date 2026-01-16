@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
-import { SentimentService } from "./sentiment.service";
-import { SentimentWorker } from "./sentiment.worker";
+import { SentimentService } from "./sentiment.service.js";
+import { SentimentWorker } from "./sentiment.worker.js";
 
 export function createSentimentRouter(
   sentimentService: SentimentService,

@@ -1,6 +1,6 @@
-import { PrismaClient } from "../database/prisma";
-import { Booking } from "./booking.entity";
-import { BookingRepository } from "./booking.repository";
+import { PrismaClient } from "../database/prisma.js";
+import { Booking } from "./booking.entity.js";
+import { BookingRepository } from "./booking.repository.js";
 
 export class PrismaBookingRepository implements BookingRepository {
   constructor(private prisma: PrismaClient) {} // Inject PrismaClient
@@ -21,13 +21,27 @@ export class PrismaBookingRepository implements BookingRepository {
   }
 
   async save(booking: Booking): Promise<Booking> {
-    const savedBooking = await this.prisma.booking.upsert({
-      where: { id: String(booking.id) },
-      update: {
-        status: booking.status,
-        ticketCounts: booking.ticketCounts,
-      },
-      create: {
+    // If ID exists, update; otherwise create new
+    if (booking.id) {
+      const savedBooking = await this.prisma.booking.update({
+        where: { id: booking.id },
+        data: {
+          status: booking.status,
+          ticketCounts: booking.ticketCounts,
+        },
+      });
+      return new Booking(
+        savedBooking.id,
+        savedBooking.userId,
+        savedBooking.eventId,
+        savedBooking.ticketCounts,
+        savedBooking.status as any
+      );
+    }
+
+    // Create new booking - Prisma auto-generates ID
+    const savedBooking = await this.prisma.booking.create({
+      data: {
         userId: booking.userId,
         eventId: booking.eventId,
         ticketCounts: booking.ticketCounts,

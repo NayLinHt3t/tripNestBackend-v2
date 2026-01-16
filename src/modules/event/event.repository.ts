@@ -1,4 +1,4 @@
-import { Event, CreateEventDto, UpdateEventDto } from "./event.entity";
+import { Event, CreateEventDto, UpdateEventDto } from "./event.entity.js";
 
 export interface EventRepository {
   findById(id: string): Promise<Event | null>;

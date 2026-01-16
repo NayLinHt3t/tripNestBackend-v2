@@ -1,8 +1,8 @@
-import { Status } from "../../../generated/prisma/enums";
+import { Status } from "../../../generated/prisma/enums.js";
 
 export class Booking {
   constructor(
-    public id: number,
+    public id: string | undefined,
     public userId: string,
     public eventId: string,
     public ticketCounts: number,

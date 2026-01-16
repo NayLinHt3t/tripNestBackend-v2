@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { AuthService, AuthPayload } from "./auth.service";
+import { AuthService, AuthPayload } from "./auth.service.js";
 
 export interface AuthenticatedRequest extends Request {
   user?: AuthPayload;

@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { UserRepository } from "./user.repository";
+import { UserRepository } from "./user.repository.js";
 
 export interface AuthPayload {
   userId: string;

@@ -1,6 +1,6 @@
 import { Router, Response, Request } from "express";
-import { BookingService } from "./booking.service";
-import { AuthenticatedRequest } from "../auth/auth.middleware";
+import { BookingService } from "./booking.service.js";
+import { AuthenticatedRequest } from "../auth/auth.middleware.js";
 
 export function createBookingRouter(bookingService: BookingService): Router {
   const router = Router();

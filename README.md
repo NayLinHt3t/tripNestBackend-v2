@@ -656,7 +656,3 @@ POST /api/sentiment/worker/stop
 | `NEUTRAL`  | Neutral sentiment detected  |
 
 ---
-
-## License
-
-MIT

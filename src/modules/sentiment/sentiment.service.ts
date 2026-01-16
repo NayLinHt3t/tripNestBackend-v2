@@ -1,7 +1,7 @@
-import { SentimentJobRepository } from "./sentiment.repository";
-import { SentimentAnalyzer } from "./sentiment.analyzer";
-import { SentimentJob, SentimentResult } from "./sentiment.entity";
-import { PrismaClient } from "../database/prisma";
+import { SentimentJobRepository } from "./sentiment.repository.js";
+import { SentimentAnalyzer } from "./sentiment.analyzer.js";
+import { SentimentJob, SentimentResult } from "./sentiment.entity.js";
+import { PrismaClient } from "../database/prisma.js";
 
 export class SentimentService {
   constructor(

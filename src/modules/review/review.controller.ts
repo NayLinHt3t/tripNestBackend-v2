@@ -1,6 +1,6 @@
 import { Router, Response } from "express";
-import { ReviewService } from "./review.service";
-import { AuthenticatedRequest } from "../auth/auth.middleware";
+import { ReviewService } from "./review.service.js";
+import { AuthenticatedRequest } from "../auth/auth.middleware.js";
 
 export function createReviewRouter(reviewService: ReviewService): Router {
   const router = Router();

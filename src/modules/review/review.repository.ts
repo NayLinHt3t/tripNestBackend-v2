@@ -1,4 +1,4 @@
-import { Review, CreateReviewDto, UpdateReviewDto } from "./review.entity";
+import { Review, CreateReviewDto, UpdateReviewDto } from "./review.entity.js";
 
 export interface ReviewRepository {
   findById(id: string): Promise<Review | null>;

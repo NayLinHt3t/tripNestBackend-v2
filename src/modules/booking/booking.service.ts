@@ -1,6 +1,6 @@
-import { Booking } from "./booking.entity";
-import { BookingRepository } from "./booking.repository";
-import { Status } from "../../../generated/prisma/enums";
+import { Booking } from "./booking.entity.js";
+import { BookingRepository } from "./booking.repository.js";
+import { Status } from "../../../generated/prisma/enums.js";
 
 export class BookingService {
   constructor(private bookingRepository: BookingRepository) {}
@@ -27,7 +27,7 @@ export class BookingService {
     }
 
     const booking = new Booking(
-      Math.random(),
+      undefined, // Let Prisma auto-generate the ID
       userId,
       eventId,
       ticketCounts,

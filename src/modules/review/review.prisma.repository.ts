@@ -1,6 +1,6 @@
-import { PrismaClient } from "../database/prisma";
-import { Review, CreateReviewDto, UpdateReviewDto } from "./review.entity";
-import { ReviewRepository } from "./review.repository";
+import { PrismaClient } from "../database/prisma.js";
+import { Review, CreateReviewDto, UpdateReviewDto } from "./review.entity.js";
+import { ReviewRepository } from "./review.repository.js";
 
 export class PrismaReviewRepository implements ReviewRepository {
   constructor(private prisma: PrismaClient) {}

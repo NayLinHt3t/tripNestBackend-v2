@@ -1,5 +1,5 @@
-import { SentimentService } from "./sentiment.service";
-import { SentimentJobRepository } from "./sentiment.repository";
+import { SentimentService } from "./sentiment.service.js";
+import { SentimentJobRepository } from "./sentiment.repository.js";
 
 export class SentimentWorker {
   private isRunning = false;

@@ -1,6 +1,6 @@
-import { PrismaClient } from "../database/prisma";
-import { Event, CreateEventDto, UpdateEventDto } from "./event.entity";
-import { EventRepository } from "./event.repository";
+import { PrismaClient } from "../database/prisma.js";
+import { Event, CreateEventDto, UpdateEventDto } from "./event.entity.js";
+import { EventRepository } from "./event.repository.js";
 
 export class PrismaEventRepository implements EventRepository {
   constructor(private prisma: PrismaClient) {}

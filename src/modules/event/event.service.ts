@@ -1,5 +1,5 @@
-import { Event, CreateEventDto, UpdateEventDto } from "./event.entity";
-import { EventRepository } from "./event.repository";
+import { Event, CreateEventDto, UpdateEventDto } from "./event.entity.js";
+import { EventRepository } from "./event.repository.js";
 
 export class EventService {
   constructor(private eventRepository: EventRepository) {}
