@@ -14,6 +14,11 @@ import { PrismaEventRepository } from "./modules/event/event.prisma.repository";
 import { createReviewRouter } from "./modules/review/review.controller";
 import { ReviewService } from "./modules/review/review.service";
 import { PrismaReviewRepository } from "./modules/review/review.prisma.repository";
+import { createSentimentRouter } from "./modules/sentiment/sentiment.controller";
+import { SentimentService } from "./modules/sentiment/sentiment.service";
+import { PrismaSentimentJobRepository } from "./modules/sentiment/sentiment.prisma.repository";
+import { MockSentimentAnalyzer } from "./modules/sentiment/sentiment.analyzer";
+import { SentimentWorker } from "./modules/sentiment/sentiment.worker";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -31,6 +36,22 @@ const eventService = new EventService(eventRepository);
 const reviewRepository = new PrismaReviewRepository(prisma);
 const reviewService = new ReviewService(reviewRepository);
 
+// Initialize sentiment module
+const sentimentJobRepository = new PrismaSentimentJobRepository(prisma);
+const sentimentAnalyzer = new MockSentimentAnalyzer();
+const sentimentService = new SentimentService(
+  sentimentJobRepository,
+  sentimentAnalyzer,
+  prisma
+);
+const sentimentWorker = new SentimentWorker(
+  sentimentService,
+  sentimentJobRepository
+);
+
+// Wire up review service with sentiment service
+reviewService.setSentimentService(sentimentService);
+
 // Mount auth routes (public)
 app.use("/api/auth", createAuthRouter(authService));
 
@@ -40,8 +61,18 @@ app.use("/api/events", createEventRouter(eventService));
 // Mount review routes (mixed - some public, some protected)
 app.use("/api/reviews", authMiddleware, createReviewRouter(reviewService));
 
+// Mount sentiment routes (protected)
+app.use(
+  "/api/sentiment",
+  authMiddleware,
+  createSentimentRouter(sentimentService, sentimentWorker)
+);
+
 // Mount booking routes (protected)
 app.use("/api/bookings", authMiddleware, createBookingRouter(bookingService));
+
+// Start sentiment worker
+sentimentWorker.start();
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);

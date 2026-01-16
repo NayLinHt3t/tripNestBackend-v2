@@ -8,6 +8,7 @@ A RESTful API for event booking and review management built with Express.js, Typ
 - 📅 **Events** - Create, read, update, delete events
 - 🎫 **Bookings** - Book events, confirm/cancel bookings
 - ⭐ **Reviews** - Rate and review events
+- 🧠 **Sentiment Analysis** - Automatic sentiment analysis of review comments using background job processing
 
 ## Tech Stack
 
@@ -521,6 +522,96 @@ DELETE /api/reviews/:id
 
 ---
 
+## Sentiment Analysis Endpoints
+
+> ⚠️ All sentiment endpoints require authentication
+
+Sentiment analysis runs automatically when a review with a comment is created. A background worker processes sentiment jobs asynchronously.
+
+### How It Works
+
+1. **Create Review** → Review created with `sentimentStatus: PENDING`
+2. **Job Created** → `SentimentJob` queued for processing
+3. **Worker Processes** → Background worker analyzes comment sentiment
+4. **Review Updated** → `sentimentLabel`, `sentimentScore`, and `sentimentStatus: ANALYZED`
+
+---
+
+### Get Sentiment for Review
+
+```
+GET /api/sentiment/review/:reviewId
+```
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response:** `200 OK`
+
+```json
+{
+  "reviewId": "uuid",
+  "label": "POSITIVE",
+  "score": 0.85,
+  "status": "ANALYZED"
+}
+```
+
+---
+
+### Get Worker Status
+
+```
+GET /api/sentiment/worker/status
+```
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response:** `200 OK`
+
+```json
+{
+  "running": true
+}
+```
+
+---
+
+### Start Worker
+
+```
+POST /api/sentiment/worker/start
+```
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response:** `200 OK`
+
+```json
+{
+  "message": "Worker started"
+}
+```
+
+---
+
+### Stop Worker
+
+```
+POST /api/sentiment/worker/stop
+```
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response:** `200 OK`
+
+```json
+{
+  "message": "Worker stopped"
+}
+```
+
+---
+
 ## Status Codes
 
 | Code  | Description                               |
@@ -543,6 +634,26 @@ DELETE /api/reviews/:id
 | `PENDING`   | Booking created, awaiting confirmation |
 | `CONFIRMED` | Booking confirmed                      |
 | `CANCELLED` | Booking cancelled                      |
+
+---
+
+## Sentiment Status Values
+
+| Status     | Description                       |
+| ---------- | --------------------------------- |
+| `PENDING`  | Review created, awaiting analysis |
+| `ANALYZED` | Sentiment analysis completed      |
+| `FAILED`   | Sentiment analysis failed         |
+
+---
+
+## Sentiment Labels
+
+| Label      | Description                 |
+| ---------- | --------------------------- |
+| `POSITIVE` | Positive sentiment detected |
+| `NEGATIVE` | Negative sentiment detected |
+| `NEUTRAL`  | Neutral sentiment detected  |
 
 ---
 

@@ -56,15 +56,36 @@ model Review{
   eventId   String
   rating    Int
   comment   String?
+  sentimentStatus SentimentStatus @default(PENDING)
+  sentimentLabel  String?
+  sentimentScore  Float?
   createdAt DateTime @default(now())
   upatedAt DateTime @updatedAt
+  sentimentJob SentimentJob?
 }
-model DomainEvent{
-  id          String   @id @default(uuid())
-  type        String
-  payload     Json
-  status      String  @default("New")
-  createdAt   DateTime @default(now())
+
+model SentimentJob{
+  id        String   @id @default(uuid())
+  reviewId  String   @unique
+  review    Review   @relation(fields: [reviewId], references: [id])
+  status    JobStatus @default(PENDING)
+  attempts  Int      @default(0)
+  error     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum SentimentStatus {
+  PENDING
+  ANALYZED
+  FAILED
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
 }
 
 enum Status{

@@ -1,8 +1,15 @@
 import { Review, CreateReviewDto, UpdateReviewDto } from "./review.entity";
 import { ReviewRepository } from "./review.repository";
+import { SentimentService } from "../sentiment/sentiment.service";
 
 export class ReviewService {
+  private sentimentService?: SentimentService;
+
   constructor(private reviewRepository: ReviewRepository) {}
+
+  setSentimentService(sentimentService: SentimentService): void {
+    this.sentimentService = sentimentService;
+  }
 
   async getReview(id: string): Promise<Review | null> {
     if (!id) {
@@ -54,7 +61,19 @@ export class ReviewService {
       throw new Error("You have already reviewed this event");
     }
 
-    return this.reviewRepository.create(userId, data);
+    const review = await this.reviewRepository.create(userId, data);
+
+    // Create sentiment job if comment exists and sentiment service is available
+    if (review.comment && this.sentimentService) {
+      try {
+        await this.sentimentService.createSentimentJob(review.id);
+      } catch (error) {
+        console.error("Failed to create sentiment job:", error);
+        // Don't fail the review creation if sentiment job fails
+      }
+    }
+
+    return review;
   }
 
   async updateReview(

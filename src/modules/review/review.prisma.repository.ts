@@ -41,6 +41,7 @@ export class PrismaReviewRepository implements ReviewRepository {
         eventId: data.eventId,
         rating: data.rating,
         comment: data.comment || null,
+        sentimentStatus: "PENDING",
       },
     });
   }

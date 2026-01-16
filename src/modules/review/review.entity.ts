@@ -4,6 +4,9 @@ export interface Review {
   eventId: string;
   rating: number;
   comment: string | null;
+  sentimentStatus: string;
+  sentimentLabel: string | null;
+  sentimentScore: number | null;
   createdAt: Date;
 }
 
