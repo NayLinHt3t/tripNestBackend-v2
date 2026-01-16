@@ -1,0 +1,74 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User{
+  id        String  @id @default(uuid())
+  email     String  @unique
+  name      String
+  password  String
+  createdAt DateTime @default(now())
+  bookings  Booking[]
+  reviews   Review[]
+}
+
+model Event{
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  date        DateTime
+  location    String
+  capacity    Int
+  price       Float
+  createdAt   DateTime @default(now())
+  bookings    Booking[]
+  reviews     Review[]
+}
+
+model Booking{
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   String
+  ticketCounts Int
+  status    Status
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Review{
+  id       String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  upatedAt DateTime @updatedAt
+}
+model DomainEvent{
+  id          String   @id @default(uuid())
+  type        String
+  payload     Json
+  status      String  @default("New")
+  createdAt   DateTime @default(now())
+}
+
+enum Status{
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
