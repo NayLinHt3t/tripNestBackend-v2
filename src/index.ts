@@ -17,7 +17,7 @@ import { PrismaReviewRepository } from "./modules/review/review.prisma.repositor
 import { createSentimentRouter } from "./modules/sentiment/sentiment.controller.js";
 import { SentimentService } from "./modules/sentiment/sentiment.service.js";
 import { PrismaSentimentJobRepository } from "./modules/sentiment/sentiment.prisma.repository.js";
-import { MockSentimentAnalyzer } from "./modules/sentiment/sentiment.analyzer.js";
+import { createSentimentAnalyzer } from "./modules/sentiment/sentiment.analyzer.js";
 import { SentimentWorker } from "./modules/sentiment/sentiment.worker.js";
 
 const app = express();
@@ -38,15 +38,15 @@ const reviewService = new ReviewService(reviewRepository);
 
 // Initialize sentiment module
 const sentimentJobRepository = new PrismaSentimentJobRepository(prisma);
-const sentimentAnalyzer = new MockSentimentAnalyzer();
+const sentimentAnalyzer = createSentimentAnalyzer();
 const sentimentService = new SentimentService(
   sentimentJobRepository,
   sentimentAnalyzer,
-  prisma
+  prisma,
 );
 const sentimentWorker = new SentimentWorker(
   sentimentService,
-  sentimentJobRepository
+  sentimentJobRepository,
 );
 
 // Wire up review service with sentiment service
@@ -65,7 +65,7 @@ app.use("/api/reviews", authMiddleware, createReviewRouter(reviewService));
 app.use(
   "/api/sentiment",
   authMiddleware,
-  createSentimentRouter(sentimentService, sentimentWorker)
+  createSentimentRouter(sentimentService, sentimentWorker),
 );
 
 // Mount booking routes (protected)

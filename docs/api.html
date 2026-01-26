@@ -1,0 +1,1293 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TripNest API Documentation</title>
+    <style>
+      :root {
+        --primary: #6366f1;
+        --primary-dark: #4f46e5;
+        --secondary: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --bg: #0f172a;
+        --bg-card: #1e293b;
+        --bg-code: #334155;
+        --text: #f8fafc;
+        --text-muted: #94a3b8;
+        --border: #334155;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      /* Header */
+      header {
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--primary-dark) 100%
+        );
+        padding: 60px 0;
+        text-align: center;
+      }
+
+      header h1 {
+        font-size: 3rem;
+        margin-bottom: 10px;
+      }
+
+      header p {
+        font-size: 1.2rem;
+        opacity: 0.9;
+      }
+
+      /* Navigation */
+      nav {
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      nav ul {
+        display: flex;
+        list-style: none;
+        gap: 10px;
+        padding: 15px 0;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      nav a {
+        color: var(--text);
+        text-decoration: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        transition: background 0.2s;
+      }
+
+      nav a:hover {
+        background: var(--bg-code);
+      }
+
+      /* Main Content */
+      main {
+        padding: 40px 0;
+      }
+
+      section {
+        margin-bottom: 60px;
+      }
+
+      h2 {
+        color: var(--primary);
+        font-size: 2rem;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid var(--border);
+      }
+
+      h3 {
+        font-size: 1.3rem;
+        margin: 30px 0 15px;
+      }
+
+      /* Endpoint Card */
+      .endpoint {
+        background: var(--bg-card);
+        border-radius: 12px;
+        margin-bottom: 20px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+
+      .endpoint-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 20px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .endpoint-header:hover {
+        background: var(--bg-code);
+      }
+
+      .method {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        min-width: 70px;
+        text-align: center;
+      }
+
+      .method.get {
+        background: var(--secondary);
+        color: #000;
+      }
+      .method.post {
+        background: var(--primary);
+      }
+      .method.patch {
+        background: var(--warning);
+        color: #000;
+      }
+      .method.delete {
+        background: var(--danger);
+      }
+
+      .endpoint-path {
+        font-family: "Fira Code", monospace;
+        font-size: 1rem;
+      }
+
+      .endpoint-desc {
+        color: var(--text-muted);
+        margin-left: auto;
+      }
+
+      .auth-badge {
+        background: var(--warning);
+        color: #000;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      .endpoint-body {
+        display: none;
+        padding: 20px;
+        border-top: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.2);
+      }
+
+      .endpoint.open .endpoint-body {
+        display: block;
+      }
+
+      .endpoint-body h4 {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      /* Code Blocks */
+      pre {
+        background: var(--bg-code);
+        padding: 15px;
+        border-radius: 8px;
+        overflow-x: auto;
+        font-family: "Fira Code", monospace;
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+      }
+
+      code {
+        font-family: "Fira Code", monospace;
+      }
+
+      .inline-code {
+        background: var(--bg-code);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
+
+      /* Tables */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+
+      th,
+      td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+      }
+
+      th {
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+      }
+
+      .required {
+        color: var(--danger);
+      }
+
+      .optional {
+        color: var(--text-muted);
+      }
+
+      /* Info Boxes */
+      .info-box {
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+
+      .info-box.tip {
+        background: rgba(16, 185, 129, 0.1);
+        border-left: 4px solid var(--secondary);
+      }
+
+      .info-box.warning {
+        background: rgba(245, 158, 11, 0.1);
+        border-left: 4px solid var(--warning);
+      }
+
+      /* Response Examples */
+      .response-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .response-tab {
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        background: var(--bg-code);
+      }
+
+      .response-tab.active {
+        background: var(--primary);
+      }
+
+      .response-tab.success {
+        border: 1px solid var(--secondary);
+      }
+      .response-tab.error {
+        border: 1px solid var(--danger);
+      }
+
+      /* Footer */
+      footer {
+        background: var(--bg-card);
+        padding: 40px 0;
+        text-align: center;
+        color: var(--text-muted);
+        border-top: 1px solid var(--border);
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        header h1 {
+          font-size: 2rem;
+        }
+        .endpoint-desc {
+          display: none;
+        }
+        nav ul {
+          gap: 5px;
+        }
+        nav a {
+          padding: 6px 10px;
+          font-size: 0.9rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <h1>🏡 TripNest API</h1>
+        <p>Event Booking & Review Management API Documentation</p>
+      </div>
+    </header>
+
+    <nav>
+      <div class="container">
+        <ul>
+          <li><a href="#overview">Overview</a></li>
+          <li><a href="#authentication">Authentication</a></li>
+          <li><a href="#auth">Auth</a></li>
+          <li><a href="#events">Events</a></li>
+          <li><a href="#bookings">Bookings</a></li>
+          <li><a href="#reviews">Reviews</a></li>
+          <li><a href="#sentiment">Sentiment</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <main class="container">
+      <!-- Overview Section -->
+      <section id="overview">
+        <h2>📖 Overview</h2>
+        <p>
+          The TripNest API provides endpoints for managing events, bookings, and
+          reviews. Built with Express.js and TypeScript.
+        </p>
+
+        <h3>Base URL</h3>
+        <pre>http://localhost:3000/api</pre>
+
+        <h3>Response Format</h3>
+        <p>All responses are returned in JSON format.</p>
+        <pre>
+{
+  "data": { ... },
+  "message": "Success message"
+}</pre
+        >
+
+        <h3>Error Response</h3>
+        <pre>
+{
+  "error": "Error description"
+}</pre
+        >
+      </section>
+
+      <!-- Authentication Section -->
+      <section id="authentication">
+        <h2>🔐 Authentication</h2>
+        <p>
+          Protected endpoints require a JWT token in the Authorization header.
+        </p>
+
+        <div class="info-box tip">
+          <strong>💡 Tip:</strong> After login or registration, store the
+          returned token and include it in all subsequent requests to protected
+          endpoints.
+        </div>
+
+        <h3>Authorization Header</h3>
+        <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
+
+        <h3>Token Expiration</h3>
+        <p>
+          Tokens expire after <strong>24 hours</strong>. After expiration, users
+          must login again.
+        </p>
+      </section>
+
+      <!-- Auth Endpoints -->
+      <section id="auth">
+        <h2>👤 Auth Endpoints</h2>
+
+        <!-- Register -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/auth/register</span>
+            <span class="endpoint-desc">Create a new user account</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Request Body</h4>
+            <table>
+              <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>email</td>
+                <td>string</td>
+                <td class="required">Yes</td>
+                <td>User's email address</td>
+              </tr>
+              <tr>
+                <td>password</td>
+                <td>string</td>
+                <td class="required">Yes</td>
+                <td>User's password</td>
+              </tr>
+              <tr>
+                <td>name</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>User's display name</td>
+              </tr>
+            </table>
+
+            <h4>Example Request</h4>
+            <pre>
+{
+  "email": "user@example.com",
+  "password": "securePassword123",
+  "name": "John Doe"
+}</pre
+            >
+
+            <h4>Success Response (201)</h4>
+            <pre>
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "userId": "clx1234567890",
+  "email": "user@example.com",
+  "expiresIn": "24h",
+  "message": "Registration successful"
+}</pre
+            >
+
+            <h4>Error Responses</h4>
+            <pre>
+// 400 Bad Request
+{ "error": "Missing required fields: email, password" }
+
+// 409 Conflict
+{ "error": "User with this email already exists" }</pre
+            >
+          </div>
+        </div>
+
+        <!-- Login -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/auth/login</span>
+            <span class="endpoint-desc">Authenticate and get token</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Request Body</h4>
+            <table>
+              <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>email</td>
+                <td>string</td>
+                <td class="required">Yes</td>
+                <td>User's email address</td>
+              </tr>
+              <tr>
+                <td>password</td>
+                <td>string</td>
+                <td class="required">Yes</td>
+                <td>User's password</td>
+              </tr>
+            </table>
+
+            <h4>Example Request</h4>
+            <pre>
+{
+  "email": "user@example.com",
+  "password": "securePassword123"
+}</pre
+            >
+
+            <h4>Success Response (200)</h4>
+            <pre>
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "userId": "clx1234567890",
+  "email": "user@example.com",
+  "expiresIn": "24h",
+  "message": "Login successful"
+}</pre
+            >
+
+            <h4>Error Responses</h4>
+            <pre>
+// 401 Unauthorized
+{ "error": "Invalid email or password" }</pre
+            >
+          </div>
+        </div>
+
+        <!-- Logout -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/auth/logout</span>
+            <span class="endpoint-desc">Invalidate current token</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
+
+            <h4>Success Response (200)</h4>
+            <pre>{ "message": "Logout successful" }</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Events Endpoints -->
+      <section id="events">
+        <h2>📅 Events Endpoints</h2>
+        <p>
+          Events are public resources - no authentication required for viewing.
+        </p>
+
+        <!-- Get All Events -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/events</span>
+            <span class="endpoint-desc">Get all events</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Success Response (200)</h4>
+            <pre>
+[
+  {
+    "id": "clx1234567890",
+    "title": "Summer Music Festival",
+    "description": "A three-day music festival",
+    "date": "2026-07-15T18:00:00.000Z",
+    "location": "Central Park, NYC",
+    "capacity": 5000,
+    "price": 99.99,
+    "createdAt": "2026-01-20T10:00:00.000Z",
+    "updatedAt": "2026-01-20T10:00:00.000Z"
+  }
+]</pre
+            >
+          </div>
+        </div>
+
+        <!-- Get Upcoming Events -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/events/upcoming</span>
+            <span class="endpoint-desc">Get upcoming events only</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Description</h4>
+            <p>
+              Returns events with dates in the future, sorted by date ascending.
+            </p>
+
+            <h4>Success Response (200)</h4>
+            <pre>
+[
+  {
+    "id": "clx1234567890",
+    "title": "Summer Music Festival",
+    "date": "2026-07-15T18:00:00.000Z",
+    ...
+  }
+]</pre
+            >
+          </div>
+        </div>
+
+        <!-- Search Events -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/events/search?location=NYC</span>
+            <span class="endpoint-desc">Search events by location</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Query Parameters</h4>
+            <table>
+              <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>location</td>
+                <td>string</td>
+                <td class="required">Yes</td>
+                <td>Location to search for</td>
+              </tr>
+            </table>
+
+            <h4>Example</h4>
+            <pre>GET /api/events/search?location=New%20York</pre>
+          </div>
+        </div>
+
+        <!-- Get Event by ID -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/events/:id</span>
+            <span class="endpoint-desc">Get event by ID</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Path Parameters</h4>
+            <table>
+              <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>id</td>
+                <td>string</td>
+                <td>Event ID</td>
+              </tr>
+            </table>
+
+            <h4>Error Response (404)</h4>
+            <pre>{ "error": "Event not found" }</pre>
+          </div>
+        </div>
+
+        <!-- Create Event -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/events</span>
+            <span class="endpoint-desc">Create a new event</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Request Body</h4>
+            <table>
+              <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>title</td>
+                <td>string</td>
+                <td class="required">Yes</td>
+                <td>Event title</td>
+              </tr>
+              <tr>
+                <td>description</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>Event description</td>
+              </tr>
+              <tr>
+                <td>date</td>
+                <td>string (ISO)</td>
+                <td class="required">Yes</td>
+                <td>Event date/time</td>
+              </tr>
+              <tr>
+                <td>location</td>
+                <td>string</td>
+                <td class="required">Yes</td>
+                <td>Event location</td>
+              </tr>
+              <tr>
+                <td>capacity</td>
+                <td>number</td>
+                <td class="required">Yes</td>
+                <td>Max attendees</td>
+              </tr>
+              <tr>
+                <td>price</td>
+                <td>number</td>
+                <td class="required">Yes</td>
+                <td>Ticket price</td>
+              </tr>
+            </table>
+
+            <h4>Example Request</h4>
+            <pre>
+{
+  "title": "Summer Music Festival",
+  "description": "A three-day music festival featuring top artists",
+  "date": "2026-07-15T18:00:00.000Z",
+  "location": "Central Park, NYC",
+  "capacity": 5000,
+  "price": 99.99
+}</pre
+            >
+
+            <h4>Success Response (201)</h4>
+            <pre>
+{
+  "id": "clx1234567890",
+  "title": "Summer Music Festival",
+  ...
+}</pre
+            >
+          </div>
+        </div>
+
+        <!-- Update Event -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path">/api/events/:id</span>
+            <span class="endpoint-desc">Update an event</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Request Body</h4>
+            <p>Include only fields you want to update:</p>
+            <pre>
+{
+  "title": "Updated Event Title",
+  "price": 149.99
+}</pre
+            >
+          </div>
+        </div>
+
+        <!-- Delete Event -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method delete">DELETE</span>
+            <span class="endpoint-path">/api/events/:id</span>
+            <span class="endpoint-desc">Delete an event</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Success Response (200)</h4>
+            <pre>{ "message": "Event deleted successfully" }</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Bookings Endpoints -->
+      <section id="bookings">
+        <h2>🎫 Bookings Endpoints</h2>
+        <div class="info-box warning">
+          <strong>🔒 Authentication Required:</strong> All booking endpoints
+          require a valid JWT token.
+        </div>
+
+        <!-- Get Booking -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/bookings/:id</span>
+            <span class="endpoint-desc">Get booking by ID</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Path Parameters</h4>
+            <table>
+              <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>id</td>
+                <td>string</td>
+                <td>Booking ID</td>
+              </tr>
+            </table>
+
+            <h4>Success Response (200)</h4>
+            <pre>
+{
+  "id": "clx1234567890",
+  "userId": "clx0987654321",
+  "eventId": "clx1111111111",
+  "ticketCount": 2,
+  "totalPrice": 199.98,
+  "status": "CONFIRMED",
+  "createdAt": "2026-01-25T10:00:00.000Z",
+  "updatedAt": "2026-01-25T10:00:00.000Z"
+}</pre
+            >
+          </div>
+        </div>
+
+        <!-- Create Booking -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/bookings</span>
+            <span class="endpoint-desc">Create a new booking</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Request Body</h4>
+            <table>
+              <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>eventId</td>
+                <td>string</td>
+                <td class="required">Yes</td>
+                <td>Event to book</td>
+              </tr>
+              <tr>
+                <td>ticketCounts</td>
+                <td>number</td>
+                <td class="required">Yes</td>
+                <td>Number of tickets</td>
+              </tr>
+            </table>
+
+            <h4>Example Request</h4>
+            <pre>
+{
+  "eventId": "clx1111111111",
+  "ticketCounts": 2
+}</pre
+            >
+
+            <h4>Success Response (201)</h4>
+            <pre>
+{
+  "id": "clx1234567890",
+  "userId": "clx0987654321",
+  "eventId": "clx1111111111",
+  "ticketCount": 2,
+  "totalPrice": 199.98,
+  "status": "PENDING"
+}</pre
+            >
+          </div>
+        </div>
+
+        <!-- Confirm Booking -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path">/api/bookings/:id/confirm</span>
+            <span class="endpoint-desc">Confirm a booking</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Description</h4>
+            <p>Changes booking status from PENDING to CONFIRMED.</p>
+
+            <h4>Success Response (200)</h4>
+            <pre>
+{
+  "id": "clx1234567890",
+  "status": "CONFIRMED",
+  ...
+}</pre
+            >
+          </div>
+        </div>
+
+        <!-- Cancel Booking -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path">/api/bookings/:id/cancel</span>
+            <span class="endpoint-desc">Cancel a booking</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Description</h4>
+            <p>Changes booking status to CANCELLED.</p>
+
+            <h4>Success Response (200)</h4>
+            <pre>
+{
+  "id": "clx1234567890",
+  "status": "CANCELLED",
+  ...
+}</pre
+            >
+          </div>
+        </div>
+
+        <!-- Update Booking -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path">/api/bookings/:id</span>
+            <span class="endpoint-desc">Update ticket count</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Request Body</h4>
+            <pre>
+{
+  "ticketCounts": 4
+}</pre
+            >
+          </div>
+        </div>
+      </section>
+
+      <!-- Reviews Endpoints -->
+      <section id="reviews">
+        <h2>⭐ Reviews Endpoints</h2>
+        <p>Some review endpoints are public, others require authentication.</p>
+
+        <!-- Get Reviews by Event -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/reviews/event/:eventId</span>
+            <span class="endpoint-desc">Get reviews for an event</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Success Response (200)</h4>
+            <pre>
+[
+  {
+    "id": "clx1234567890",
+    "eventId": "clx1111111111",
+    "userId": "clx0987654321",
+    "rating": 5,
+    "comment": "Amazing event! Highly recommended.",
+    "sentimentLabel": "POSITIVE",
+    "sentimentScore": 0.95,
+    "createdAt": "2026-01-25T10:00:00.000Z"
+  }
+]</pre
+            >
+          </div>
+        </div>
+
+        <!-- Get Event Average Rating -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path"
+              >/api/reviews/event/:eventId/rating</span
+            >
+            <span class="endpoint-desc">Get average rating for event</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Success Response (200)</h4>
+            <pre>
+{
+  "eventId": "clx1111111111",
+  "averageRating": 4.5
+}</pre
+            >
+          </div>
+        </div>
+
+        <!-- Get My Reviews -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/reviews/my</span>
+            <span class="endpoint-desc">Get current user's reviews</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Description</h4>
+            <p>Returns all reviews created by the authenticated user.</p>
+          </div>
+        </div>
+
+        <!-- Get Review by ID -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/reviews/:id</span>
+            <span class="endpoint-desc">Get review by ID</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Error Response (404)</h4>
+            <pre>{ "error": "Review not found" }</pre>
+          </div>
+        </div>
+
+        <!-- Create Review -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/reviews</span>
+            <span class="endpoint-desc">Create a new review</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Request Body</h4>
+            <table>
+              <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>eventId</td>
+                <td>string</td>
+                <td class="required">Yes</td>
+                <td>Event to review</td>
+              </tr>
+              <tr>
+                <td>rating</td>
+                <td>number</td>
+                <td class="required">Yes</td>
+                <td>Rating (1-5)</td>
+              </tr>
+              <tr>
+                <td>comment</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>Review text</td>
+              </tr>
+            </table>
+
+            <h4>Example Request</h4>
+            <pre>
+{
+  "eventId": "clx1111111111",
+  "rating": 5,
+  "comment": "Amazing event! The atmosphere was incredible."
+}</pre
+            >
+
+            <div class="info-box tip">
+              <strong>🧠 AI Sentiment Analysis:</strong> When you submit a
+              review with a comment, the system automatically analyzes the
+              sentiment using AI. The sentiment label
+              (POSITIVE/NEGATIVE/NEUTRAL) and score will be added to the review.
+            </div>
+
+            <h4>Success Response (201)</h4>
+            <pre>
+{
+  "id": "clx1234567890",
+  "eventId": "clx1111111111",
+  "userId": "clx0987654321",
+  "rating": 5,
+  "comment": "Amazing event! The atmosphere was incredible.",
+  "sentimentStatus": "PENDING",
+  "createdAt": "2026-01-25T10:00:00.000Z"
+}</pre
+            >
+
+            <h4>Error Response (409)</h4>
+            <pre>{ "error": "You have already reviewed this event" }</pre>
+          </div>
+        </div>
+
+        <!-- Update Review -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path">/api/reviews/:id</span>
+            <span class="endpoint-desc">Update your review</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Request Body</h4>
+            <pre>
+{
+  "rating": 4,
+  "comment": "Updated review text"
+}</pre
+            >
+
+            <h4>Error Response (403)</h4>
+            <pre>{ "error": "You can only update your own reviews" }</pre>
+          </div>
+        </div>
+
+        <!-- Delete Review -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method delete">DELETE</span>
+            <span class="endpoint-path">/api/reviews/:id</span>
+            <span class="endpoint-desc">Delete your review</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Success Response (200)</h4>
+            <pre>{ "message": "Review deleted successfully" }</pre>
+
+            <h4>Error Response (403)</h4>
+            <pre>{ "error": "You can only delete your own reviews" }</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sentiment Endpoints -->
+      <section id="sentiment">
+        <h2>🧠 Sentiment Analysis Endpoints</h2>
+        <div class="info-box warning">
+          <strong>🔒 Authentication Required:</strong> All sentiment endpoints
+          require a valid JWT token.
+        </div>
+
+        <div class="info-box tip">
+          <strong>How it works:</strong> When a review is created, a background
+          job is queued for sentiment analysis. The system uses AI (custom API,
+          OpenAI, or mock) to analyze the review comment and determine its
+          sentiment.
+        </div>
+
+        <!-- Get Sentiment for Review -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/sentiment/review/:reviewId</span>
+            <span class="endpoint-desc"
+              >Get sentiment analysis for a review</span
+            >
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Success Response (200)</h4>
+            <pre>
+{
+  "reviewId": "clx1234567890",
+  "sentiment": {
+    "label": "POSITIVE",
+    "score": 0.95
+  },
+  "job": {
+    "status": "DONE",
+    "attempts": 1,
+    "error": null
+  }
+}</pre
+            >
+
+            <h4>Sentiment Labels</h4>
+            <table>
+              <tr>
+                <th>Label</th>
+                <th>Score Range</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>POSITIVE</td>
+                <td>0.2 to 1.0</td>
+                <td>Positive sentiment detected</td>
+              </tr>
+              <tr>
+                <td>NEUTRAL</td>
+                <td>-0.2 to 0.2</td>
+                <td>Neutral or mixed sentiment</td>
+              </tr>
+              <tr>
+                <td>NEGATIVE</td>
+                <td>-1.0 to -0.2</td>
+                <td>Negative sentiment detected</td>
+              </tr>
+            </table>
+
+            <h4>Job Status Values</h4>
+            <table>
+              <tr>
+                <th>Status</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>PENDING</td>
+                <td>Job is queued, waiting to be processed</td>
+              </tr>
+              <tr>
+                <td>PROCESSING</td>
+                <td>Currently being analyzed</td>
+              </tr>
+              <tr>
+                <td>DONE</td>
+                <td>Analysis complete</td>
+              </tr>
+              <tr>
+                <td>FAILED</td>
+                <td>Analysis failed after max retries</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Worker Status -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/sentiment/worker/status</span>
+            <span class="endpoint-desc">Get sentiment worker status</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Success Response (200)</h4>
+            <pre>
+{
+  "isRunning": true
+}</pre
+            >
+          </div>
+        </div>
+
+        <!-- Start Worker -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/sentiment/worker/start</span>
+            <span class="endpoint-desc">Start the sentiment worker</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Success Response (200)</h4>
+            <pre>{ "message": "Worker started" }</pre>
+          </div>
+        </div>
+
+        <!-- Stop Worker -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/sentiment/worker/stop</span>
+            <span class="endpoint-desc">Stop the sentiment worker</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Success Response (200)</h4>
+            <pre>{ "message": "Worker stopped" }</pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="container">
+        <p>
+          TripNest API Documentation • Built with ❤️ using Express.js &
+          TypeScript
+        </p>
+        <p style="margin-top: 10px">Version 1.0.0</p>
+      </div>
+    </footer>
+
+    <script>
+      function toggleEndpoint(header) {
+        const endpoint = header.parentElement;
+        endpoint.classList.toggle("open");
+      }
+
+      // Open endpoint if URL has hash
+      if (window.location.hash) {
+        const section = document.querySelector(window.location.hash);
+        if (section) {
+          section.scrollIntoView();
+        }
+      }
+    </script>
+  </body>
+</html>

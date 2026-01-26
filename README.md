@@ -8,7 +8,10 @@ A RESTful API for event booking and review management built with Express.js, Typ
 - 📅 **Events** - Create, read, update, delete events
 - 🎫 **Bookings** - Book events, confirm/cancel bookings
 - ⭐ **Reviews** - Rate and review events
-- 🧠 **Sentiment Analysis** - Automatic sentiment analysis of review comments using background job processing
+- 🧠 **Sentiment Analysis** - AI-powered sentiment analysis of review comments with fallback chain:
+  1. Custom AI API (primary)
+  2. OpenAI API (backup)
+  3. Mock analyzer (fallback)
 
 ## Tech Stack
 
@@ -19,6 +22,7 @@ A RESTful API for event booking and review management built with Express.js, Typ
 - **ORM:** Prisma
 - **Authentication:** JWT (jsonwebtoken)
 - **Password Hashing:** bcrypt
+- **AI Integration:** Custom AI API / OpenAI API
 
 ## Getting Started
 
@@ -65,41 +69,138 @@ The server will start on `http://localhost:3000`
 
 ## Environment Variables
 
-| Variable       | Description                  | Default           |
-| -------------- | ---------------------------- | ----------------- |
-| `DATABASE_URL` | PostgreSQL connection string | -                 |
-| `JWT_SECRET`   | Secret key for JWT tokens    | `your-secret-key` |
-| `PORT`         | Server port                  | `3000`            |
+| Variable         | Description                           | Required |
+| ---------------- | ------------------------------------- | -------- |
+| `DATABASE_URL`   | PostgreSQL connection string          | Yes      |
+| `JWT_SECRET`     | Secret key for JWT tokens             | Yes      |
+| `PORT`           | Server port (default: 3000)           | No       |
+| `AI_API`         | Custom AI sentiment analysis endpoint | No       |
+| `OPENAI_API_KEY` | OpenAI API key (fallback)             | No       |
 
----
+## API Documentation
 
-# API Documentation
+📖 **Interactive API Documentation:** Open [docs/api.html](docs/api.html) in your browser for detailed API documentation with examples.
 
-## Base URL
+### Quick Reference
+
+#### Base URL
 
 ```
 http://localhost:3000/api
 ```
 
-## Authentication
+#### Authentication
 
-All protected routes require a Bearer token in the Authorization header:
+All protected routes require a Bearer token:
 
 ```
 Authorization: Bearer <your-jwt-token>
 ```
 
----
+### Endpoints Overview
 
-## Auth Endpoints
+| Method | Endpoint                             | Auth | Description                 |
+| ------ | ------------------------------------ | ---- | --------------------------- |
+| POST   | `/api/auth/register`                 | No   | Create new account          |
+| POST   | `/api/auth/login`                    | No   | Login and get token         |
+| POST   | `/api/auth/logout`                   | No   | Invalidate token            |
+| GET    | `/api/events`                        | No   | Get all events              |
+| GET    | `/api/events/upcoming`               | No   | Get upcoming events         |
+| GET    | `/api/events/search?location=`       | No   | Search events by location   |
+| GET    | `/api/events/:id`                    | No   | Get event by ID             |
+| POST   | `/api/events`                        | No   | Create event                |
+| PATCH  | `/api/events/:id`                    | No   | Update event                |
+| DELETE | `/api/events/:id`                    | No   | Delete event                |
+| GET    | `/api/bookings/:id`                  | Yes  | Get booking by ID           |
+| POST   | `/api/bookings`                      | Yes  | Create booking              |
+| PATCH  | `/api/bookings/:id`                  | Yes  | Update booking              |
+| PATCH  | `/api/bookings/:id/confirm`          | Yes  | Confirm booking             |
+| PATCH  | `/api/bookings/:id/cancel`           | Yes  | Cancel booking              |
+| GET    | `/api/reviews/event/:eventId`        | Yes  | Get reviews for event       |
+| GET    | `/api/reviews/event/:eventId/rating` | Yes  | Get event average rating    |
+| GET    | `/api/reviews/my`                    | Yes  | Get user's reviews          |
+| GET    | `/api/reviews/:id`                   | Yes  | Get review by ID            |
+| POST   | `/api/reviews`                       | Yes  | Create review (triggers AI) |
+| PATCH  | `/api/reviews/:id`                   | Yes  | Update review               |
+| DELETE | `/api/reviews/:id`                   | Yes  | Delete review               |
+| GET    | `/api/sentiment/review/:reviewId`    | Yes  | Get sentiment for review    |
+| GET    | `/api/sentiment/worker/status`       | Yes  | Get worker status           |
+| POST   | `/api/sentiment/worker/start`        | Yes  | Start sentiment worker      |
+| POST   | `/api/sentiment/worker/stop`         | Yes  | Stop sentiment worker       |
 
-### Register
+## Sentiment Analysis
 
-Create a new user account.
+The API includes AI-powered sentiment analysis for review comments. When a review is created, a background job analyzes the comment and assigns:
+
+- **Label:** `POSITIVE`, `NEGATIVE`, or `NEUTRAL`
+- **Score:** A number from -1 (most negative) to 1 (most positive)
+
+### Analyzer Priority Chain
+
+1. **Custom AI API** (`AI_API` env var) - Your own sentiment analysis endpoint
+2. **OpenAI API** (`OPENAI_API_KEY` env var) - Falls back to OpenAI if custom API fails
+3. **Mock Analyzer** - Keyword-based fallback if both APIs are unavailable
+
+### Custom AI API Contract
+
+If using a custom AI API, it should:
+
+**Request:**
+
+```json
+POST /your-endpoint
+Content-Type: application/json
+
+{ "text": "Review comment to analyze" }
+```
+
+**Response:**
+
+```json
+{
+  "label": "POSITIVE",
+  "score": 0.85
+}
+```
+
+## Project Structure
 
 ```
+tripNest/
+├── src/
+│   ├── index.ts              # Application entry point
+│   └── modules/
+│       ├── auth/             # Authentication module
+│       ├── booking/          # Booking management
+│       ├── database/         # Prisma client
+│       ├── event/            # Event management
+│       ├── review/           # Review management
+│       └── sentiment/        # AI sentiment analysis
+├── prisma/
+│   ├── schema.prisma         # Database schema
+│   └── migrations/           # Database migrations
+├── docs/
+│   └── api.html              # Interactive API documentation
+└── generated/                # Prisma generated types
+```
+
+## Scripts
+
+| Script                    | Description              |
+| ------------------------- | ------------------------ |
+| `npm run dev`             | Start development server |
+| `npm run build`           | Build for production     |
+| `npm start`               | Start production server  |
+| `npm run prisma:generate` | Generate Prisma client   |
+| `npm run prisma:migrate`  | Run database migrations  |
+| `npm run prisma:studio`   | Open Prisma Studio       |
+
+## License
+
+ISC
 POST /api/auth/register
-```
+
+````
 
 **Request Body:**
 
@@ -109,7 +210,7 @@ POST /api/auth/register
   "password": "password123",
   "name": "John Doe"
 }
-```
+````
 
 **Response:** `201 Created`
 
