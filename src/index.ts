@@ -1,5 +1,7 @@
 import "dotenv/config";
 import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
 import { createBookingRouter } from "./modules/booking/booking.controller.js";
 import { BookingService } from "./modules/booking/booking.service.js";
 import { PrismaBookingRepository } from "./modules/booking/booking.prisma.repository.js";
@@ -19,6 +21,9 @@ import { SentimentService } from "./modules/sentiment/sentiment.service.js";
 import { PrismaSentimentJobRepository } from "./modules/sentiment/sentiment.prisma.repository.js";
 import { createSentimentAnalyzer } from "./modules/sentiment/sentiment.analyzer.js";
 import { SentimentWorker } from "./modules/sentiment/sentiment.worker.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -51,6 +56,11 @@ const sentimentWorker = new SentimentWorker(
 
 // Wire up review service with sentiment service
 reviewService.setSentimentService(sentimentService);
+
+// Serve API documentation at root
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "docs", "api.html"));
+});
 
 // Mount auth routes (public)
 app.use("/api/auth", createAuthRouter(authService));
