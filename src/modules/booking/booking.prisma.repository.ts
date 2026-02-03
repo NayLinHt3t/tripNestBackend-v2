@@ -15,9 +15,24 @@ export class PrismaBookingRepository implements BookingRepository {
           booking.userId,
           booking.eventId,
           booking.ticketCounts,
-          booking.status as any
+          booking.status as any,
         )
       : null;
+  }
+  async findByUserId(userId: string): Promise<Booking[]> {
+    const bookings = await this.prisma.booking.findMany({
+      where: { userId },
+    });
+    return bookings.map(
+      (booking) =>
+        new Booking(
+          booking.id,
+          booking.userId,
+          booking.eventId,
+          booking.ticketCounts,
+          booking.status as any,
+        ),
+    );
   }
 
   async save(booking: Booking): Promise<Booking> {
@@ -35,7 +50,7 @@ export class PrismaBookingRepository implements BookingRepository {
         savedBooking.userId,
         savedBooking.eventId,
         savedBooking.ticketCounts,
-        savedBooking.status as any
+        savedBooking.status as any,
       );
     }
 
@@ -54,7 +69,7 @@ export class PrismaBookingRepository implements BookingRepository {
       savedBooking.userId,
       savedBooking.eventId,
       savedBooking.ticketCounts,
-      savedBooking.status as any
+      savedBooking.status as any,
     );
   }
 }

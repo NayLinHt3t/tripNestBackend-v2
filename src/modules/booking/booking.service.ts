@@ -11,11 +11,17 @@ export class BookingService {
     }
     return this.bookingRepository.findById(bookingId);
   }
+  async getBookingsByUser(userId: string): Promise<Booking[]> {
+    if (!userId) {
+      throw new Error("User ID is required");
+    }
+    return this.bookingRepository.findByUserId(userId);
+  }
 
   async createBooking(
     userId: string,
     eventId: string,
-    ticketCounts: number
+    ticketCounts: number,
   ): Promise<Booking> {
     // Validate inputs
     if (!userId || !eventId || !ticketCounts) {
@@ -31,7 +37,7 @@ export class BookingService {
       userId,
       eventId,
       ticketCounts,
-      Status.PENDING
+      Status.PENDING,
     );
     return this.bookingRepository.save(booking);
   }
@@ -66,7 +72,7 @@ export class BookingService {
 
   async updateBooking(
     bookingId: string,
-    ticketCounts: number
+    ticketCounts: number,
   ): Promise<Booking | null> {
     if (!bookingId) {
       throw new Error("Booking ID is required");

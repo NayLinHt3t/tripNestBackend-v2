@@ -4,6 +4,21 @@ import { AuthenticatedRequest } from "../auth/auth.middleware.js";
 
 export function createBookingRouter(bookingService: BookingService): Router {
   const router = Router();
+  router.get("/me", async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const bookings = await bookingService.getBookingsByUser(userId);
+      res.status(200).json(bookings);
+    } catch (error) {
+      res.status(400).json({
+        error: error instanceof Error ? error.message : "Internal error",
+      });
+    }
+  });
 
   // Get booking by ID
   router.get("/:id", async (req: AuthenticatedRequest, res: Response) => {
@@ -32,7 +47,7 @@ export function createBookingRouter(bookingService: BookingService): Router {
       const booking = await bookingService.createBooking(
         userId || "",
         eventId,
-        ticketCounts
+        ticketCounts,
       );
       res.status(201).json(booking);
     } catch (error) {
@@ -60,7 +75,7 @@ export function createBookingRouter(bookingService: BookingService): Router {
           error: error instanceof Error ? error.message : "Internal error",
         });
       }
-    }
+    },
   );
 
   // Cancel booking
@@ -81,7 +96,7 @@ export function createBookingRouter(bookingService: BookingService): Router {
           error: error instanceof Error ? error.message : "Internal error",
         });
       }
-    }
+    },
   );
 
   // Update booking (ticket count)
