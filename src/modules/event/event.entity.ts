@@ -1,8 +1,15 @@
+export interface EventImages {
+  id: string;
+  eventId: string;
+  imageUrl: string;
+  createdAt: Date;
+}
 export interface Event {
   id: string;
   title: string;
   description: string;
   date: Date;
+  images: EventImages[];
   location: string;
   capacity: number;
   price: number;
@@ -16,6 +23,7 @@ export interface CreateEventDto {
   location: string;
   capacity: number;
   price: number;
+  imageUrls?: string[];
 }
 
 export interface UpdateEventDto {

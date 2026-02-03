@@ -23,6 +23,14 @@ model User{
   reviews   Review[]
 }
 
+model EventImages{
+  id        String   @id @default(uuid())
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   String
+  imageUrl  String
+  createdAt DateTime @default(now())
+}
+
 model Event{
   id          String   @id @default(uuid())
   title       String
@@ -33,7 +41,8 @@ model Event{
   price       Float
   createdAt   DateTime @default(now())
   bookings    Booking[]
-  reviews     Review[]
+  reviews     Review[] 
+  images      EventImages[]
 }
 
 model Booking{

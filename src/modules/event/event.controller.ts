@@ -1,8 +1,14 @@
 import { Router, Request, Response } from "express";
+import multer from "multer";
 import { EventService } from "./event.service.js";
+import { uploadImageBuffer } from "../utils/cloudinary.js";
 
 export function createEventRouter(eventService: EventService): Router {
   const router = Router();
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 },
+  });
 
   // Get all events
   router.get("/", async (req: Request, res: Response) => {
@@ -67,26 +73,50 @@ export function createEventRouter(eventService: EventService): Router {
   });
 
   // Create new event
-  router.post("/", async (req: Request, res: Response) => {
-    try {
-      const { title, description, date, location, capacity, price } = req.body;
+  router.post(
+    "/",
+    upload.array("images", 5),
+    async (req: Request, res: Response) => {
+      try {
+        const { title, description, date, location, capacity, price } =
+          req.body;
+        const files = Array.isArray(req.files) ? req.files : [];
 
-      const event = await eventService.createEvent({
-        title,
-        description,
-        date,
-        location,
-        capacity,
-        price,
-      });
+        const imageUrls = files.length
+          ? await Promise.all(
+              files.map(async (file) => {
+                const uploaded = await uploadImageBuffer(file.buffer, {
+                  folder: "tripnest/events",
+                  resource_type: "image",
+                });
+                return uploaded.secure_url;
+              }),
+            )
+          : [];
 
-      res.status(201).json(event);
-    } catch (error) {
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+        const parsedCapacity =
+          capacity !== undefined ? Number(capacity) : capacity;
+        const parsedPrice = price !== undefined ? Number(price) : price;
+        const parsedDate = date ? new Date(date) : date;
+
+        const event = await eventService.createEvent({
+          title,
+          description,
+          date: parsedDate,
+          location,
+          capacity: parsedCapacity,
+          price: parsedPrice,
+          imageUrls,
+        });
+
+        res.status(201).json(event);
+      } catch (error) {
+        res.status(400).json({
+          error: error instanceof Error ? error.message : "Internal error",
+        });
+      }
+    },
+  );
 
   // Update event
   router.patch("/:id", async (req: Request, res: Response) => {

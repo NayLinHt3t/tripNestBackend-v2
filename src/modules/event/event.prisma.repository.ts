@@ -8,12 +8,14 @@ export class PrismaEventRepository implements EventRepository {
   async findById(id: string): Promise<Event | null> {
     return this.prisma.event.findUnique({
       where: { id },
+      include: { images: true },
     });
   }
 
   async findAll(): Promise<Event[]> {
     return this.prisma.event.findMany({
       orderBy: { date: "asc" },
+      include: { images: true },
     });
   }
 
@@ -26,6 +28,7 @@ export class PrismaEventRepository implements EventRepository {
         },
       },
       orderBy: { date: "asc" },
+      include: { images: true },
     });
   }
 
@@ -37,6 +40,7 @@ export class PrismaEventRepository implements EventRepository {
         },
       },
       orderBy: { date: "asc" },
+      include: { images: true },
     });
   }
 
@@ -49,7 +53,15 @@ export class PrismaEventRepository implements EventRepository {
         location: data.location,
         capacity: data.capacity,
         price: data.price,
+        ...(data.imageUrls && data.imageUrls.length
+          ? {
+              images: {
+                create: data.imageUrls.map((imageUrl) => ({ imageUrl })),
+              },
+            }
+          : {}),
       },
+      include: { images: true },
     });
   }
 
@@ -65,6 +77,7 @@ export class PrismaEventRepository implements EventRepository {
           ...(data.capacity && { capacity: data.capacity }),
           ...(data.price && { price: data.price }),
         },
+        include: { images: true },
       });
     } catch {
       return null;
