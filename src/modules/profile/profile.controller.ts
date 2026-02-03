@@ -118,57 +118,7 @@ export function createProfileRouter(profileService: ProfileService): Router {
     },
   );
 
-  // Update profile
-  router.patch(
-    "/:id",
-    upload.single("profilePicture"),
-    async (req: AuthenticatedRequest, res: Response) => {
-      try {
-        const { id } = req.params as { id: string };
-        const { fullName, phone, dateOfBirth, gender } = req.body;
-        let profilePictureUrl = undefined;
-
-        // Upload image to Cloudinary if provided
-        if (req.file) {
-          try {
-            const uploadResult = await uploadImageBuffer(req.file.buffer, {
-              folder: "tripnest/profiles",
-              resource_type: "auto",
-            });
-            profilePictureUrl = uploadResult.secure_url;
-          } catch (uploadError) {
-            return res.status(400).json({
-              error:
-                uploadError instanceof Error
-                  ? uploadError.message
-                  : "Failed to upload image",
-            });
-          }
-        }
-
-        const profile = await profileService.updateProfile(
-          id,
-          fullName,
-          phone,
-          dateOfBirth ? new Date(dateOfBirth) : undefined,
-          gender,
-          profilePictureUrl,
-        );
-        res.status(200).json(profileToResponse(profile));
-      } catch (error) {
-        if (error instanceof Error && error.message.includes("not found")) {
-          return res.status(404).json({
-            error: error.message,
-          });
-        }
-        res.status(400).json({
-          error: error instanceof Error ? error.message : "Internal error",
-        });
-      }
-    },
-  );
-
-  // Update current user's profile
+  // Update current user's profile (must be before /:id route)
   router.patch(
     "/me",
     upload.single("profilePicture"),
@@ -226,6 +176,56 @@ export function createProfileRouter(profileService: ProfileService): Router {
         );
         res.status(200).json(profileToResponse(profile));
       } catch (error) {
+        res.status(400).json({
+          error: error instanceof Error ? error.message : "Internal error",
+        });
+      }
+    },
+  );
+
+  // Update profile
+  router.patch(
+    "/:id",
+    upload.single("profilePicture"),
+    async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { id } = req.params as { id: string };
+        const { fullName, phone, dateOfBirth, gender } = req.body;
+        let profilePictureUrl = undefined;
+
+        // Upload image to Cloudinary if provided
+        if (req.file) {
+          try {
+            const uploadResult = await uploadImageBuffer(req.file.buffer, {
+              folder: "tripnest/profiles",
+              resource_type: "auto",
+            });
+            profilePictureUrl = uploadResult.secure_url;
+          } catch (uploadError) {
+            return res.status(400).json({
+              error:
+                uploadError instanceof Error
+                  ? uploadError.message
+                  : "Failed to upload image",
+            });
+          }
+        }
+
+        const profile = await profileService.updateProfile(
+          id,
+          fullName,
+          phone,
+          dateOfBirth ? new Date(dateOfBirth) : undefined,
+          gender,
+          profilePictureUrl,
+        );
+        res.status(200).json(profileToResponse(profile));
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("not found")) {
+          return res.status(404).json({
+            error: error.message,
+          });
+        }
         res.status(400).json({
           error: error instanceof Error ? error.message : "Internal error",
         });
