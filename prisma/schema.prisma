@@ -52,6 +52,8 @@ model Booking{
   event     Event    @relation(fields: [eventId], references: [id])
   eventId   String
   ticketCounts Int
+  unitPrice  Float?
+  totalPrice  Float?
   status    Status
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

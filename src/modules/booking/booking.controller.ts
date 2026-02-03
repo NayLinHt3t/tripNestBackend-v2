@@ -1,6 +1,9 @@
 import { Router, Response, Request } from "express";
 import { BookingService } from "./booking.service.js";
 import { AuthenticatedRequest } from "../auth/auth.middleware.js";
+import { Booking } from "./booking.entity.js";
+
+// Helper function to convert Booking entity to response DTO
 
 export function createBookingRouter(bookingService: BookingService): Router {
   const router = Router();

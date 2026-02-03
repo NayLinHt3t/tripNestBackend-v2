@@ -1,6 +1,6 @@
 import { PrismaClient } from "../database/prisma.js";
 import { Booking } from "./booking.entity.js";
-import { BookingRepository } from "./booking.repository.js";
+import { BookingRepository, EventInfo } from "./booking.repository.js";
 
 export class PrismaBookingRepository implements BookingRepository {
   constructor(private prisma: PrismaClient) {} // Inject PrismaClient
@@ -16,9 +16,12 @@ export class PrismaBookingRepository implements BookingRepository {
           booking.eventId,
           booking.ticketCounts,
           booking.status as any,
+          booking.unitPrice ?? undefined,
+          booking.totalPrice ?? undefined,
         )
       : null;
   }
+
   async findByUserId(userId: string): Promise<Booking[]> {
     const bookings = await this.prisma.booking.findMany({
       where: { userId },
@@ -31,8 +34,18 @@ export class PrismaBookingRepository implements BookingRepository {
           booking.eventId,
           booking.ticketCounts,
           booking.status as any,
+          booking.unitPrice ?? undefined,
+          booking.totalPrice ?? undefined,
         ),
     );
+  }
+
+  async findEventById(eventId: string): Promise<EventInfo | null> {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, price: true },
+    });
+    return event;
   }
 
   async save(booking: Booking): Promise<Booking> {
@@ -43,6 +56,8 @@ export class PrismaBookingRepository implements BookingRepository {
         data: {
           status: booking.status,
           ticketCounts: booking.ticketCounts,
+          unitPrice: booking.unitPrice,
+          totalPrice: booking.totalPrice,
         },
       });
       return new Booking(
@@ -51,6 +66,8 @@ export class PrismaBookingRepository implements BookingRepository {
         savedBooking.eventId,
         savedBooking.ticketCounts,
         savedBooking.status as any,
+        savedBooking.unitPrice ?? undefined,
+        savedBooking.totalPrice ?? undefined,
       );
     }
 
@@ -61,6 +78,8 @@ export class PrismaBookingRepository implements BookingRepository {
         eventId: booking.eventId,
         ticketCounts: booking.ticketCounts,
         status: booking.status,
+        unitPrice: booking.unitPrice,
+        totalPrice: booking.totalPrice,
       },
     });
 
@@ -70,6 +89,8 @@ export class PrismaBookingRepository implements BookingRepository {
       savedBooking.eventId,
       savedBooking.ticketCounts,
       savedBooking.status as any,
+      savedBooking.unitPrice ?? undefined,
+      savedBooking.totalPrice ?? undefined,
     );
   }
 }

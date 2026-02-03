@@ -9,13 +9,39 @@ export class BookingService {
     if (!bookingId) {
       throw new Error("Booking ID is required");
     }
-    return this.bookingRepository.findById(bookingId);
+    const booking = await this.bookingRepository.findById(bookingId);
+
+    // If prices are missing, calculate them
+    if (booking && (!booking.unitPrice || !booking.totalPrice)) {
+      const event = await this.bookingRepository.findEventById(booking.eventId);
+      if (event) {
+        booking.calculateTotalPrice(event.price);
+        await this.bookingRepository.save(booking);
+      }
+    }
+
+    return booking;
   }
   async getBookingsByUser(userId: string): Promise<Booking[]> {
     if (!userId) {
       throw new Error("User ID is required");
     }
-    return this.bookingRepository.findByUserId(userId);
+    const bookings = await this.bookingRepository.findByUserId(userId);
+
+    // Calculate missing prices for all bookings
+    for (const booking of bookings) {
+      if (!booking.unitPrice || !booking.totalPrice) {
+        const event = await this.bookingRepository.findEventById(
+          booking.eventId,
+        );
+        if (event) {
+          booking.calculateTotalPrice(event.price);
+          await this.bookingRepository.save(booking);
+        }
+      }
+    }
+
+    return bookings;
   }
 
   async createBooking(
@@ -32,14 +58,28 @@ export class BookingService {
       throw new Error("Ticket count must be greater than 0");
     }
 
+    // Get event price
+    const event = await this.bookingRepository.findEventById(eventId);
+
+    if (!event) {
+      throw new Error("Event not found");
+    }
+
     const booking = new Booking(
       undefined, // Let Prisma auto-generate the ID
       userId,
       eventId,
       ticketCounts,
       Status.PENDING,
+      undefined,
+      undefined,
     );
-    return this.bookingRepository.save(booking);
+
+    // Calculate prices before saving
+    booking.calculateTotalPrice(event.price);
+
+    const savedBooking = await this.bookingRepository.save(booking);
+    return savedBooking;
   }
 
   async confirmBooking(bookingId: string): Promise<Booking | null> {
@@ -50,6 +90,15 @@ export class BookingService {
     const booking = await this.bookingRepository.findById(bookingId);
     if (!booking) {
       throw new Error("Booking not found");
+    }
+
+    // If prices are not set, calculate them
+    if (!booking.unitPrice || !booking.totalPrice) {
+      const event = await this.bookingRepository.findEventById(booking.eventId);
+      if (!event) {
+        throw new Error("Event not found");
+      }
+      booking.calculateTotalPrice(event.price);
     }
 
     booking.comfirmBooking();
@@ -87,7 +136,8 @@ export class BookingService {
       throw new Error("Booking not found");
     }
 
-    booking.ticketCounts = ticketCounts;
+    // Update ticket counts and recalculate total price
+    booking.updateTicketCounts(ticketCounts);
     return this.bookingRepository.save(booking);
   }
 }
