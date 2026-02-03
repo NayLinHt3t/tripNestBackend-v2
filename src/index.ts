@@ -21,6 +21,9 @@ import { SentimentService } from "./modules/sentiment/sentiment.service.js";
 import { PrismaSentimentJobRepository } from "./modules/sentiment/sentiment.prisma.repository.js";
 import { createSentimentAnalyzer } from "./modules/sentiment/sentiment.analyzer.js";
 import { SentimentWorker } from "./modules/sentiment/sentiment.worker.js";
+import { createProfileRouter } from "./modules/profile/profile.controller.js";
+import { ProfileService } from "./modules/profile/profile.service.js";
+import { PrismaProfileRepository } from "./modules/profile/profile.prisma.repository.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,6 +43,8 @@ const eventRepository = new PrismaEventRepository(prisma);
 const eventService = new EventService(eventRepository);
 const reviewRepository = new PrismaReviewRepository(prisma);
 const reviewService = new ReviewService(reviewRepository);
+const profileRepository = new PrismaProfileRepository(prisma);
+const profileService = new ProfileService(profileRepository, prisma);
 
 // Initialize sentiment module
 const sentimentJobRepository = new PrismaSentimentJobRepository(prisma);
@@ -80,6 +85,9 @@ app.use(
 
 // Mount booking routes (protected)
 app.use("/api/bookings", authMiddleware, createBookingRouter(bookingService));
+
+// Mount profile routes (protected)
+app.use("/api/profile", authMiddleware, createProfileRouter(profileService));
 
 // Start sentiment worker
 sentimentWorker.start();
