@@ -1318,212 +1318,424 @@
         </p>
 
         <!-- Get Current User's Profile -->
-        <div class="endpoint" onclick="toggleEndpoint(event.currentTarget)">
-          <div class="endpoint-header">
-            <span class="method-badge get">GET</span>
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
             <span class="endpoint-path">/api/profile/me</span>
             <span class="endpoint-desc">Get current user's profile</span>
             <span class="auth-badge">Auth</span>
           </div>
           <div class="endpoint-body">
+            <h4>Description</h4>
             <p>Returns the profile for the authenticated user. Returns default profile with placeholder values if no profile exists yet.</p>
+
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
+
             <h4>Success Response (200)</h4>
-            <pre>{
-  "id": "profile-uuid",
-  "userId": "user-uuid",
+            <pre>
+{
+  "id": "clx1234567890",
+  "userId": "clx0987654321",
   "fullName": "John Doe",
   "phone": "+1234567890",
   "dateOfBirth": "1990-01-15T00:00:00.000Z",
   "gender": "Male",
-  "profilePictureUrl": "https://cloudinary.com/..."
-}</pre>
-            <h4>Example Response (no profile yet)</h4>
-            <pre>{
+  "profilePictureUrl": "https://res.cloudinary.com/tripnest/profiles/image.jpg"
+}</pre
+            >
+
+            <h4>Default Response (no profile yet)</h4>
+            <pre>
+{
   "id": null,
-  "userId": "user-uuid",
+  "userId": "clx0987654321",
   "fullName": "Not Set",
   "phone": "Not Set",
   "dateOfBirth": null,
   "gender": "Not Set",
   "profilePictureUrl": "https://via.placeholder.com/200?text=Profile+Picture"
-}</pre>
+}</pre
+            >
           </div>
         </div>
 
         <!-- Get Profile by ID -->
-        <div class="endpoint" onclick="toggleEndpoint(event.currentTarget)">
-          <div class="endpoint-header">
-            <span class="method-badge get">GET</span>
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
             <span class="endpoint-path">/api/profile/:id</span>
             <span class="endpoint-desc">Get profile by ID</span>
             <span class="auth-badge">Auth</span>
           </div>
           <div class="endpoint-body">
+            <h4>Description</h4>
             <p>Retrieve a specific profile by its ID.</p>
-            <h4>Parameters</h4>
-            <pre>id (string): Profile ID</pre>
+
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
+
+            <h4>Path Parameters</h4>
+            <table>
+              <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>id</td>
+                <td>string</td>
+                <td class="required">Yes</td>
+                <td>Profile ID</td>
+              </tr>
+            </table>
+
             <h4>Success Response (200)</h4>
-            <pre>{
-  "id": "profile-uuid",
-  "userId": "user-uuid",
+            <pre>
+{
+  "id": "clx1234567890",
+  "userId": "clx0987654321",
   "fullName": "John Doe",
   "phone": "+1234567890",
   "dateOfBirth": "1990-01-15T00:00:00.000Z",
   "gender": "Male",
-  "profilePictureUrl": "https://cloudinary.com/..."
-}</pre>
-            <h4>Error Response (404)</h4>
-            <pre>{ "error": "Profile not found" }</pre>
+  "profilePictureUrl": "https://res.cloudinary.com/tripnest/profiles/image.jpg"
+}</pre
+            >
+
+            <h4>Error Responses</h4>
+            <pre>
+// 404 Not Found
+{ "error": "Profile not found" }</pre
+            >
           </div>
         </div>
 
         <!-- Create Profile -->
-        <div class="endpoint" onclick="toggleEndpoint(event.currentTarget)">
-          <div class="endpoint-header">
-            <span class="method-badge post">POST</span>
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
             <span class="endpoint-path">/api/profile</span>
             <span class="endpoint-desc">Create a new profile</span>
             <span class="auth-badge">Auth</span>
           </div>
           <div class="endpoint-body">
-            <p>Create a new profile for the authenticated user with optional profile picture upload.</p>
-            <h4>Request (multipart/form-data)</h4>
-            <pre>fullName (string, optional): User's full name
-phone (string, optional): User's phone number
-dateOfBirth (string, optional): Date of birth (ISO 8601, e.g. 1990-01-15)
-gender (string, optional): User's gender
-profilePicture (file, optional): Image file (max 5MB)</pre>
-            <h4>Example</h4>
-            <pre>curl -X POST http://localhost:3000/api/profile \
-  -H "Authorization: Bearer &lt;token&gt;" \
-  -F "fullName=John Doe" \
-  -F "phone=+1234567890" \
-  -F "dateOfBirth=1990-01-15" \
-  -F "gender=Male" \
-  -F "profilePicture=@image.jpg"</pre>
-            <h4>Success Response (201)</h4>
-            <pre>{
-  "id": "profile-uuid",
-  "userId": "user-uuid",
+            <h4>Description</h4>
+            <p>Create a new profile for the authenticated user. Supports multipart/form-data for profile picture upload.</p>
+
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;
+Content-Type: multipart/form-data</pre>
+
+            <h4>Request Body (multipart/form-data)</h4>
+            <table>
+              <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>fullName</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>User's full name</td>
+              </tr>
+              <tr>
+                <td>phone</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>User's phone number</td>
+              </tr>
+              <tr>
+                <td>dateOfBirth</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>Date of birth (ISO 8601, e.g. 1990-01-15)</td>
+              </tr>
+              <tr>
+                <td>gender</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>User's gender</td>
+              </tr>
+              <tr>
+                <td>profilePicture</td>
+                <td>file</td>
+                <td class="optional">No</td>
+                <td>Profile image file (max 5MB)</td>
+              </tr>
+            </table>
+
+            <h4>Example Request</h4>
+            <pre>
+{
   "fullName": "John Doe",
   "phone": "+1234567890",
-  "dateOfBirth": null,
+  "dateOfBirth": "1990-01-15",
+  "gender": "Male"
+}</pre
+            >
+
+            <h4>Success Response (201)</h4>
+            <pre>
+{
+  "id": "clx1234567890",
+  "userId": "clx0987654321",
+  "fullName": "John Doe",
+  "phone": "+1234567890",
+  "dateOfBirth": "1990-01-15T00:00:00.000Z",
   "gender": "Male",
-  "profilePictureUrl": "https://res.cloudinary.com/..."
-}</pre>
-            <h4>Error Response (400)</h4>
-            <pre>{ "error": "Profile already exists for this user" }</pre>
+  "profilePictureUrl": "https://res.cloudinary.com/tripnest/profiles/image.jpg"
+}</pre
+            >
+
+            <h4>Error Responses</h4>
+            <pre>
+// 400 Bad Request
+{ "error": "Profile already exists for this user" }
+
+// 401 Unauthorized
+{ "error": "Unauthorized" }</pre
+            >
           </div>
         </div>
 
         <!-- Update Profile by ID -->
-        <div class="endpoint" onclick="toggleEndpoint(event.currentTarget)">
-          <div class="endpoint-header">
-            <span class="method-badge patch">PATCH</span>
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method patch">PATCH</span>
             <span class="endpoint-path">/api/profile/:id</span>
             <span class="endpoint-desc">Update profile by ID</span>
             <span class="auth-badge">Auth</span>
           </div>
           <div class="endpoint-body">
+            <h4>Description</h4>
             <p>Update an existing profile with new information and/or profile picture.</p>
-            <h4>Request (multipart/form-data)</h4>
-            <pre>fullName (string, optional): Updated full name
-phone (string, optional): Updated phone number
-dateOfBirth (string, optional): Updated date of birth (ISO 8601, e.g. 1990-01-15)
-gender (string, optional): Updated gender
-profilePicture (file, optional): New profile image (max 5MB)</pre>
-            <h4>Example</h4>
-            <pre>curl -X PATCH http://localhost:3000/api/profile/profile-uuid \
-  -H "Authorization: Bearer &lt;token&gt;" \
-  -F "phone=+9876543210" \
-  -F "dateOfBirth=1990-01-15" \
-  -F "profilePicture=@new-image.jpg"</pre>
+
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;
+Content-Type: multipart/form-data</pre>
+
+            <h4>Path Parameters</h4>
+            <table>
+              <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>id</td>
+                <td>string</td>
+                <td class="required">Yes</td>
+                <td>Profile ID</td>
+              </tr>
+            </table>
+
+            <h4>Request Body (multipart/form-data)</h4>
+            <table>
+              <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>fullName</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>Updated full name</td>
+              </tr>
+              <tr>
+                <td>phone</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>Updated phone number</td>
+              </tr>
+              <tr>
+                <td>dateOfBirth</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>Updated date of birth (ISO 8601)</td>
+              </tr>
+              <tr>
+                <td>gender</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>Updated gender</td>
+              </tr>
+              <tr>
+                <td>profilePicture</td>
+                <td>file</td>
+                <td class="optional">No</td>
+                <td>New profile image (max 5MB)</td>
+              </tr>
+            </table>
+
+            <h4>Example Request</h4>
+            <pre>
+{
+  "phone": "+9876543210",
+  "dateOfBirth": "1992-05-20"
+}</pre
+            >
+
             <h4>Success Response (200)</h4>
-            <pre>{
-  "id": "profile-uuid",
-  "userId": "user-uuid",
+            <pre>
+{
+  "id": "clx1234567890",
+  "userId": "clx0987654321",
   "fullName": "John Doe",
   "phone": "+9876543210",
-  "dateOfBirth": "1990-01-15T00:00:00.000Z",
+  "dateOfBirth": "1992-05-20T00:00:00.000Z",
   "gender": "Male",
-  "profilePictureUrl": "https://res.cloudinary.com/..."
-}</pre>
-            <h4>Error Response (404)</h4>
-            <pre>{ "error": "Profile not found" }</pre>
+  "profilePictureUrl": "https://res.cloudinary.com/tripnest/profiles/image.jpg"
+}</pre
+            >
+
+            <h4>Error Responses</h4>
+            <pre>
+// 404 Not Found
+{ "error": "Profile not found" }</pre
+            >
           </div>
         </div>
 
         <!-- Update Current User's Profile -->
-        <div class="endpoint" onclick="toggleEndpoint(event.currentTarget)">
-          <div class="endpoint-header">
-            <span class="method-badge patch">PATCH</span>
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method patch">PATCH</span>
             <span class="endpoint-path">/api/profile/me</span>
             <span class="endpoint-desc">Update current user's profile</span>
             <span class="auth-badge">Auth</span>
           </div>
           <div class="endpoint-body">
+            <h4>Description</h4>
             <p>Update the authenticated user's profile. Creates a new profile if one doesn't exist yet.</p>
-            <h4>Request (multipart/form-data)</h4>
-            <pre>fullName (string, optional): Updated full name
-phone (string, optional): Updated phone number
-dateOfBirth (string, optional): Updated date of birth (ISO 8601, e.g. 1990-01-15)
-gender (string, optional): Updated gender
-profilePicture (file, optional): New profile image (max 5MB)</pre>
-            <h4>Example</h4>
-            <pre>curl -X PATCH http://localhost:3000/api/profile/me \
-  -H "Authorization: Bearer &lt;token&gt;" \
-  -F "fullName=Jane Doe" \
-  -F "dateOfBirth=1990-01-15" \
-  -F "profilePicture=@profile.jpg"</pre>
+
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;
+Content-Type: multipart/form-data</pre>
+
+            <h4>Request Body (multipart/form-data)</h4>
+            <table>
+              <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>fullName</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>Updated full name</td>
+              </tr>
+              <tr>
+                <td>phone</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>Updated phone number</td>
+              </tr>
+              <tr>
+                <td>dateOfBirth</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>Updated date of birth (ISO 8601)</td>
+              </tr>
+              <tr>
+                <td>gender</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>Updated gender</td>
+              </tr>
+              <tr>
+                <td>profilePicture</td>
+                <td>file</td>
+                <td class="optional">No</td>
+                <td>New profile image (max 5MB)</td>
+              </tr>
+            </table>
+
+            <h4>Example Request</h4>
+            <pre>
+{
+  "fullName": "Jane Doe",
+  "dateOfBirth": "1990-01-15",
+  "gender": "Female"
+}</pre
+            >
+
             <h4>Success Response (200)</h4>
-            <pre>{
-  "id": "profile-uuid",
-  "userId": "user-uuid",
+            <pre>
+{
+  "id": "clx1234567890",
+  "userId": "clx0987654321",
   "fullName": "Jane Doe",
   "phone": "+1234567890",
   "dateOfBirth": "1990-01-15T00:00:00.000Z",
   "gender": "Female",
-  "profilePictureUrl": "https://res.cloudinary.com/..."
-}</pre>
+  "profilePictureUrl": "https://res.cloudinary.com/tripnest/profiles/profile.jpg"
+}</pre
+            >
           </div>
         </div>
 
         <!-- Delete Profile -->
-        <div class="endpoint" onclick="toggleEndpoint(event.currentTarget)">
-          <div class="endpoint-header">
-            <span class="method-badge delete">DELETE</span>
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method delete">DELETE</span>
             <span class="endpoint-path">/api/profile/:id</span>
             <span class="endpoint-desc">Delete profile</span>
             <span class="auth-badge">Auth</span>
           </div>
           <div class="endpoint-body">
+            <h4>Description</h4>
             <p>Delete a profile by its ID.</p>
-            <h4>Parameters</h4>
-            <pre>id (string): Profile ID</pre>
+
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
+
+            <h4>Path Parameters</h4>
+            <table>
+              <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>id</td>
+                <td>string</td>
+                <td class="required">Yes</td>
+                <td>Profile ID</td>
+              </tr>
+            </table>
+
             <h4>Success Response (200)</h4>
             <pre>{ "message": "Profile deleted successfully" }</pre>
-            <h4>Error Response (404)</h4>
-            <pre>{ "error": "Profile not found" }</pre>
+
+            <h4>Error Responses</h4>
+            <pre>
+// 404 Not Found
+{ "error": "Profile not found" }</pre
+            >
           </div>
         </div>
 
         <h3>📸 Profile Picture Upload</h3>
         <p>
-          <strong>Features:</strong>
+          Profile pictures are automatically uploaded to Cloudinary when provided.
         </p>
         <ul>
-          <li>Upload profile pictures to Cloudinary automatically</li>
-          <li>Max file size: 5MB</li>
-          <li>Supported formats: JPEG, PNG, GIF, WebP, etc.</li>
-          <li>Images stored in <code>tripnest/profiles</code> folder on Cloudinary</li>
-          <li>Returns secure HTTPS URL for the uploaded image</li>
+          <li><strong>Max file size:</strong> 5MB</li>
+          <li><strong>Supported formats:</strong> JPEG, PNG, GIF, WebP</li>
+          <li><strong>Storage:</strong> Images stored in <code>tripnest/profiles</code> folder on Cloudinary</li>
+          <li><strong>URL:</strong> Returns secure HTTPS URL for the uploaded image</li>
         </ul>
-        <p>
-          <strong>Required Environment Variables:</strong>
-        </p>
-        <pre>CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret</pre>
+      </section>
 
 
     <footer>
