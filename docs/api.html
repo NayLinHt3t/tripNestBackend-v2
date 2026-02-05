@@ -565,11 +565,18 @@
     "title": "Summer Music Festival",
     "description": "A three-day music festival",
     "date": "2026-07-15T18:00:00.000Z",
+    "images": [
+      {
+        "id": "img123",
+        "eventId": "clx1234567890",
+        "imageUrl": "https://res.cloudinary.com/tripnest/events/banner.jpg",
+        "createdAt": "2026-01-20T10:00:00.000Z"
+      }
+    ],
     "location": "Central Park, NYC",
     "capacity": 5000,
     "price": 99.99,
-    "createdAt": "2026-01-20T10:00:00.000Z",
-    "updatedAt": "2026-01-20T10:00:00.000Z"
+    "createdAt": "2026-01-20T10:00:00.000Z"
   }
 ]</pre
             >
@@ -595,8 +602,20 @@
   {
     "id": "clx1234567890",
     "title": "Summer Music Festival",
+    "description": "A three-day music festival",
     "date": "2026-07-15T18:00:00.000Z",
-    ...
+    "images": [
+      {
+        "id": "img123",
+        "eventId": "clx1234567890",
+        "imageUrl": "https://res.cloudinary.com/tripnest/events/banner.jpg",
+        "createdAt": "2026-01-20T10:00:00.000Z"
+      }
+    ],
+    "location": "Central Park, NYC",
+    "capacity": 5000,
+    "price": 99.99,
+    "createdAt": "2026-01-20T10:00:00.000Z"
   }
 ]</pre
             >
@@ -712,14 +731,14 @@
                 <td>Ticket price</td>
               </tr>
               <tr>
-                <td>imageUrls</td>
-                <td>string[]</td>
+                <td>images</td>
+                <td>file[]</td>
                 <td class="optional">No</td>
-                <td>Array of image URLs for the event</td>
+                <td>Image files for the event (max 5, multipart/form-data)</td>
               </tr>
             </table>
 
-            <h4>Example Request</h4>
+            <h4>Example Request (JSON)</h4>
             <pre>
 {
   "title": "Summer Music Festival",
@@ -727,11 +746,7 @@
   "date": "2026-07-15T18:00:00.000Z",
   "location": "Central Park, NYC",
   "capacity": 5000,
-  "price": 99.99,
-  "imageUrls": [
-    "https://example.com/event-banner.jpg",
-    "https://example.com/event-poster.jpg"
-  ]
+  "price": 99.99
 }</pre
             >
 
@@ -740,7 +755,20 @@
 {
   "id": "clx1234567890",
   "title": "Summer Music Festival",
-  ...
+  "description": "A three-day music festival featuring top artists",
+  "date": "2026-07-15T18:00:00.000Z",
+  "images": [
+    {
+      "id": "img123",
+      "eventId": "clx1234567890",
+      "imageUrl": "https://res.cloudinary.com/tripnest/events/banner.jpg",
+      "createdAt": "2026-01-20T10:00:00.000Z"
+    }
+  ],
+  "location": "Central Park, NYC",
+  "capacity": 5000,
+  "price": 99.99,
+  "createdAt": "2026-01-20T10:00:00.000Z"
 }</pre
             >
           </div>
