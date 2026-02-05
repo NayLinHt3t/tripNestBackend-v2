@@ -20,11 +20,12 @@ const upload = multer({
 });
 
 // Helper function to convert UserProfile entity to response DTO
-function profileToResponse(profile: UserProfile | null) {
+function profileToResponse(profile: UserProfile | null, email?: string) {
   if (!profile) return null;
   return {
     id: profile.id,
     userId: profile.userId,
+    email: email || null,
     fullName: profile.fullName,
     phone: profile.phone,
     dateOfBirth: profile.dateOfBirth || null,
@@ -40,12 +41,13 @@ export function createProfileRouter(profileService: ProfileService): Router {
   router.get("/me", async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = req.user?.userId;
+      const email = req.user?.email;
       if (!userId) {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
       const profile = await profileService.getProfileByUserId(userId);
-      res.status(200).json(profileToResponse(profile));
+      res.status(200).json(profileToResponse(profile, email));
     } catch (error) {
       res.status(400).json({
         error: error instanceof Error ? error.message : "Internal error",
@@ -57,11 +59,12 @@ export function createProfileRouter(profileService: ProfileService): Router {
   router.get("/:id", async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { id } = req.params as { id: string };
+      const email = req.user?.email;
       const profile = await profileService.getProfileById(id);
       if (!profile) {
         return res.status(404).json({ error: "Profile not found" });
       }
-      res.status(200).json(profileToResponse(profile));
+      res.status(200).json(profileToResponse(profile, email));
     } catch (error) {
       res.status(400).json({
         error: error instanceof Error ? error.message : "Internal error",
@@ -76,6 +79,7 @@ export function createProfileRouter(profileService: ProfileService): Router {
     async (req: AuthenticatedRequest, res: Response) => {
       try {
         const userId = req.user?.userId;
+        const email = req.user?.email;
         if (!userId) {
           return res.status(401).json({ error: "Unauthorized" });
         }
@@ -109,7 +113,7 @@ export function createProfileRouter(profileService: ProfileService): Router {
           gender,
           profilePictureUrl,
         );
-        res.status(201).json(profileToResponse(profile));
+        res.status(201).json(profileToResponse(profile, email));
       } catch (error) {
         res.status(400).json({
           error: error instanceof Error ? error.message : "Internal error",
@@ -125,6 +129,7 @@ export function createProfileRouter(profileService: ProfileService): Router {
     async (req: AuthenticatedRequest, res: Response) => {
       try {
         const userId = req.user?.userId;
+        const email = req.user?.email;
         if (!userId) {
           return res.status(401).json({ error: "Unauthorized" });
         }
@@ -162,7 +167,7 @@ export function createProfileRouter(profileService: ProfileService): Router {
             gender,
             profilePictureUrl,
           );
-          return res.status(201).json(profileToResponse(newProfile));
+          return res.status(201).json(profileToResponse(newProfile, email));
         }
 
         // Otherwise, update existing profile
@@ -174,7 +179,7 @@ export function createProfileRouter(profileService: ProfileService): Router {
           gender,
           profilePictureUrl,
         );
-        res.status(200).json(profileToResponse(profile));
+        res.status(200).json(profileToResponse(profile, email));
       } catch (error) {
         res.status(400).json({
           error: error instanceof Error ? error.message : "Internal error",
@@ -190,6 +195,7 @@ export function createProfileRouter(profileService: ProfileService): Router {
     async (req: AuthenticatedRequest, res: Response) => {
       try {
         const { id } = req.params as { id: string };
+        const email = req.user?.email;
         const { fullName, phone, dateOfBirth, gender } = req.body;
         let profilePictureUrl = undefined;
 
@@ -219,7 +225,7 @@ export function createProfileRouter(profileService: ProfileService): Router {
           gender,
           profilePictureUrl,
         );
-        res.status(200).json(profileToResponse(profile));
+        res.status(200).json(profileToResponse(profile, email));
       } catch (error) {
         if (error instanceof Error && error.message.includes("not found")) {
           return res.status(404).json({
