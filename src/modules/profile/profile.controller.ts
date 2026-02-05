@@ -27,7 +27,7 @@ function profileToResponse(profile: UserProfile | null) {
     userId: profile.userId,
     fullName: profile.fullName,
     phone: profile.phone,
-    dateOfBirth: profile.dateOfBirth,
+    dateOfBirth: profile.dateOfBirth || null,
     gender: profile.gender,
     profilePictureUrl: profile.profilePictureUrl,
   };
