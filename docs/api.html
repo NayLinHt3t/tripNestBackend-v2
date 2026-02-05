@@ -1337,6 +1337,16 @@
   "gender": "Male",
   "profilePictureUrl": "https://cloudinary.com/..."
 }</pre>
+            <h4>Example Response (no profile yet)</h4>
+            <pre>{
+  "id": null,
+  "userId": "user-uuid",
+  "fullName": "Not Set",
+  "phone": "Not Set",
+  "dateOfBirth": null,
+  "gender": "Not Set",
+  "profilePictureUrl": "https://via.placeholder.com/200?text=Profile+Picture"
+}</pre>
           </div>
         </div>
 
@@ -1380,7 +1390,7 @@
             <h4>Request (multipart/form-data)</h4>
             <pre>fullName (string, optional): User's full name
 phone (string, optional): User's phone number
-dateOfBirth (string, optional): Date of birth (ISO 8601)
+dateOfBirth (string, optional): Date of birth (ISO 8601, e.g. 1990-01-15)
 gender (string, optional): User's gender
 profilePicture (file, optional): Image file (max 5MB)</pre>
             <h4>Example</h4>
@@ -1388,6 +1398,7 @@ profilePicture (file, optional): Image file (max 5MB)</pre>
   -H "Authorization: Bearer &lt;token&gt;" \
   -F "fullName=John Doe" \
   -F "phone=+1234567890" \
+  -F "dateOfBirth=1990-01-15" \
   -F "gender=Male" \
   -F "profilePicture=@image.jpg"</pre>
             <h4>Success Response (201)</h4>
@@ -1418,13 +1429,14 @@ profilePicture (file, optional): Image file (max 5MB)</pre>
             <h4>Request (multipart/form-data)</h4>
             <pre>fullName (string, optional): Updated full name
 phone (string, optional): Updated phone number
-dateOfBirth (string, optional): Updated date of birth
+dateOfBirth (string, optional): Updated date of birth (ISO 8601, e.g. 1990-01-15)
 gender (string, optional): Updated gender
 profilePicture (file, optional): New profile image (max 5MB)</pre>
             <h4>Example</h4>
             <pre>curl -X PATCH http://localhost:3000/api/profile/profile-uuid \
   -H "Authorization: Bearer &lt;token&gt;" \
   -F "phone=+9876543210" \
+  -F "dateOfBirth=1990-01-15" \
   -F "profilePicture=@new-image.jpg"</pre>
             <h4>Success Response (200)</h4>
             <pre>{
@@ -1454,13 +1466,14 @@ profilePicture (file, optional): New profile image (max 5MB)</pre>
             <h4>Request (multipart/form-data)</h4>
             <pre>fullName (string, optional): Updated full name
 phone (string, optional): Updated phone number
-dateOfBirth (string, optional): Updated date of birth
+dateOfBirth (string, optional): Updated date of birth (ISO 8601, e.g. 1990-01-15)
 gender (string, optional): Updated gender
 profilePicture (file, optional): New profile image (max 5MB)</pre>
             <h4>Example</h4>
             <pre>curl -X PATCH http://localhost:3000/api/profile/me \
   -H "Authorization: Bearer &lt;token&gt;" \
   -F "fullName=Jane Doe" \
+  -F "dateOfBirth=1990-01-15" \
   -F "profilePicture=@profile.jpg"</pre>
             <h4>Success Response (200)</h4>
             <pre>{
