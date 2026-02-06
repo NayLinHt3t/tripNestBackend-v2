@@ -18,7 +18,7 @@ export class AuthService {
   async register(
     email: string,
     password: string,
-    name: string
+    name: string,
   ): Promise<{ userId: string; email: string }> {
     if (!this.userRepository) {
       throw new Error("User repository not configured");
@@ -41,7 +41,7 @@ export class AuthService {
 
   async login(
     email: string,
-    password: string
+    password: string,
   ): Promise<{ token: string; userId: string; email: string }> {
     if (!this.userRepository) {
       throw new Error("User repository not configured");
@@ -92,5 +92,27 @@ export class AuthService {
     const parts = authHeader.split(" ");
     if (parts.length !== 2 || parts[0] !== "Bearer") return null;
     return parts[1];
+  }
+  async changePassword(
+    userId: string,
+    oldPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    if (!this.userRepository) {
+      throw new Error("User repository not configured");
+    }
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isOldPasswordValid) {
+      throw new Error("Old password is incorrect");
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    await this.userRepository.updatePassword(userId, hashedNewPassword);
   }
 }

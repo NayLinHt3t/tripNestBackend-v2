@@ -25,4 +25,18 @@ export class PrismaUserRepository implements UserRepository {
       },
     });
   }
+  async updatePassword(id: string, newPassword: string): Promise<boolean> {
+    const result = await this.prisma.user.updateMany({
+      where: { id },
+      data: { password: newPassword },
+    });
+    return result.count > 0;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const result = await this.prisma.user.deleteMany({
+      where: { id },
+    });
+    return result.count > 0;
+  }
 }

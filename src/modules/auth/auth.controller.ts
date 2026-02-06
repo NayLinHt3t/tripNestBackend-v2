@@ -89,5 +89,38 @@ export function createAuthRouter(authService: AuthService): Router {
     }
   });
 
+  router.post(
+    "/change-password",
+    async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const userId = req.user?.userId;
+        const { oldPassword, newPassword } = req.body;
+
+        if (!userId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        if (!oldPassword || !newPassword) {
+          return res.status(400).json({
+            error: "Missing required fields: oldPassword, newPassword",
+          });
+        }
+
+        await authService.changePassword(userId, oldPassword, newPassword);
+
+        res.status(200).json({
+          message: "Password changed successfully",
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("Incorrect")) {
+          return res.status(401).json({ error: error.message });
+        }
+        res.status(500).json({
+          error: error instanceof Error ? error.message : "Internal error",
+        });
+      }
+    },
+  );
+
   return router;
 }
