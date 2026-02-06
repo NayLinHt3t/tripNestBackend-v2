@@ -540,6 +540,107 @@
             <pre>{ "message": "Logout successful" }</pre>
           </div>
         </div>
+
+        <!-- Forgot Password -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/auth/forgot-password</span>
+            <span class="endpoint-desc">Request password reset email</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Description</h4>
+            <p>Sends a password reset link to the user's email address. For security, always returns a success message even if the email doesn't exist.</p>
+
+            <h4>Request Body</h4>
+            <table>
+              <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>email</td>
+                <td>string</td>
+                <td class="required">Yes</td>
+                <td>User's registered email address</td>
+              </tr>
+            </table>
+
+            <h4>Example Request</h4>
+            <pre>
+{
+  "email": "user@example.com"
+}</pre
+            >
+
+            <h4>Success Response (200)</h4>
+            <pre>
+{
+  "message": "If this email exists, a reset link has been sent"
+}</pre
+            >
+          </div>
+        </div>
+
+        <!-- Reset Password -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/auth/reset-password</span>
+            <span class="endpoint-desc">Reset password with token</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Description</h4>
+            <p>Resets the user's password using the token received via email. Token expires after 1 hour and can only be used once.</p>
+
+            <h4>Request Body</h4>
+            <table>
+              <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>resetToken</td>
+                <td>string</td>
+                <td class="required">Yes</td>
+                <td>Token received from password reset email</td>
+              </tr>
+              <tr>
+                <td>newPassword</td>
+                <td>string</td>
+                <td class="required">Yes</td>
+                <td>New password (minimum 6 characters)</td>
+              </tr>
+            </table>
+
+            <h4>Example Request</h4>
+            <pre>
+{
+  "resetToken": "a1b2c3d4e5f6...",
+  "newPassword": "newSecurePassword123"
+}</pre
+            >
+
+            <h4>Success Response (200)</h4>
+            <pre>
+{
+  "message": "Password reset successfully"
+}</pre
+            >
+
+            <h4>Error Responses</h4>
+            <pre>
+// 400 Bad Request
+{ "error": "Missing required fields: resetToken, newPassword" }
+{ "error": "Password must be at least 6 characters" }
+{ "error": "Invalid or expired reset token" }</pre
+            >
+          </div>
+        </div>
       </section>
 
       <!-- Events Endpoints -->
