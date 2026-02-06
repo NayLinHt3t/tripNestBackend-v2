@@ -72,8 +72,8 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "docs", "api.html"));
 });
 
-// Mount auth routes (public)
-app.use("/api/auth", createAuthRouter(authService));
+// Mount auth routes (public, but change-password requires auth)
+app.use("/api/auth", createAuthRouter(authService, authMiddleware));
 
 // Mount event routes (public - anyone can view events)
 app.use("/api/events", createEventRouter(eventService));

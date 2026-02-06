@@ -1,8 +1,11 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, RequestHandler } from "express";
 import { AuthService } from "./auth.service.js";
 import { AuthenticatedRequest } from "./auth.middleware.js";
 
-export function createAuthRouter(authService: AuthService): Router {
+export function createAuthRouter(
+  authService: AuthService,
+  authMiddleware?: RequestHandler,
+): Router {
   const router = Router();
 
   // Register endpoint - creates a new user
@@ -89,38 +92,45 @@ export function createAuthRouter(authService: AuthService): Router {
     }
   });
 
-  router.post(
-    "/change-password",
-    async (req: AuthenticatedRequest, res: Response) => {
-      try {
-        const userId = req.user?.userId;
-        const { oldPassword, newPassword } = req.body;
+  // Change password - requires authentication
+  const changePasswordHandler = async (
+    req: AuthenticatedRequest,
+    res: Response,
+  ) => {
+    try {
+      const userId = req.user?.userId;
+      const { oldPassword, newPassword } = req.body;
 
-        if (!userId) {
-          return res.status(401).json({ error: "Unauthorized" });
-        }
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
 
-        if (!oldPassword || !newPassword) {
-          return res.status(400).json({
-            error: "Missing required fields: oldPassword, newPassword",
-          });
-        }
-
-        await authService.changePassword(userId, oldPassword, newPassword);
-
-        res.status(200).json({
-          message: "Password changed successfully",
-        });
-      } catch (error) {
-        if (error instanceof Error && error.message.includes("Incorrect")) {
-          return res.status(401).json({ error: error.message });
-        }
-        res.status(500).json({
-          error: error instanceof Error ? error.message : "Internal error",
+      if (!oldPassword || !newPassword) {
+        return res.status(400).json({
+          error: "Missing required fields: oldPassword, newPassword",
         });
       }
-    },
-  );
+
+      await authService.changePassword(userId, oldPassword, newPassword);
+
+      res.status(200).json({
+        message: "Password changed successfully",
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("incorrect")) {
+        return res.status(401).json({ error: error.message });
+      }
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Internal error",
+      });
+    }
+  };
+
+  if (authMiddleware) {
+    router.post("/change-password", authMiddleware, changePasswordHandler);
+  } else {
+    router.post("/change-password", changePasswordHandler);
+  }
 
   // Forgot password - generates a reset token and sends email
   router.post("/forgot-password", async (req: Request, res: Response) => {
