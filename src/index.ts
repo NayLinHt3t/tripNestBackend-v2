@@ -27,12 +27,14 @@ import { PrismaProfileRepository } from "./modules/profile/profile.prisma.reposi
 import { createOrganizerRouter } from "./modules/organizer/organizer.controller.js";
 import { OrganizerService } from "./modules/organizer/organizer.service.js";
 import { PrismaOrganizerRepository } from "./modules/organizer/organizer.prisma.repository.js";
+import { createChatRouter } from "./modules/chatting/chatting.controller.js";
+import { ChatService } from "./modules/chatting/chatting.service.js";
+import { PrismaChatRepository } from "./modules/chatting/chatting.prisma.repository.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 3000;
 app.use(express.json());
 
 // Initialize Prisma, services, and repositories
@@ -50,6 +52,8 @@ const profileRepository = new PrismaProfileRepository(prisma);
 const profileService = new ProfileService(profileRepository, prisma);
 const organizerRepository = new PrismaOrganizerRepository(prisma);
 const organizerService = new OrganizerService(organizerRepository, prisma);
+const chatRepository = new PrismaChatRepository(prisma);
+const chatService = new ChatService(chatRepository);
 
 // Initialize sentiment module
 const sentimentJobRepository = new PrismaSentimentJobRepository(prisma);
@@ -99,9 +103,10 @@ app.use(
   createOrganizerRouter(organizerService),
 );
 
+// Mount chat routes (protected)
+app.use("/api/chat", authMiddleware, createChatRouter(chatService));
+
 // Start sentiment worker
 sentimentWorker.start();
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+export default app;

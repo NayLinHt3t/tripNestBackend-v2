@@ -26,10 +26,21 @@ export class EventService {
     return this.eventRepository.findByLocation(location);
   }
 
+  async searchEvents(query: {
+    location?: string;
+    keyword?: string;
+  }): Promise<Event[]> {
+    if (!query.location && !query.keyword) {
+      throw new Error("Location or keyword is required");
+    }
+
+    return this.eventRepository.findByQuery(query);
+  }
+
   async createEvent(data: CreateEventDto): Promise<Event> {
     if (!data.title || !data.description || !data.date || !data.location) {
       throw new Error(
-        "Missing required fields: title, description, date, location"
+        "Missing required fields: title, description, date, location",
       );
     }
 

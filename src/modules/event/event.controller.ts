@@ -34,18 +34,30 @@ export function createEventRouter(eventService: EventService): Router {
     }
   });
 
-  // Search events by location
+  // Search events by location or keyword
   router.get("/search", async (req: Request, res: Response) => {
     try {
-      const { location } = req.query;
+      const { location, keyword } = req.query;
 
-      if (!location || typeof location !== "string") {
+      const locationValue =
+        typeof location === "string" && location.trim()
+          ? location.trim()
+          : undefined;
+      const keywordValue =
+        typeof keyword === "string" && keyword.trim()
+          ? keyword.trim()
+          : undefined;
+
+      if (!locationValue && !keywordValue) {
         return res.status(400).json({
-          error: "Location query parameter is required",
+          error: "Location or keyword query parameter is required",
         });
       }
 
-      const events = await eventService.searchByLocation(location);
+      const events = await eventService.searchEvents({
+        location: locationValue,
+        keyword: keywordValue,
+      });
       res.status(200).json(events);
     } catch (error) {
       res.status(400).json({

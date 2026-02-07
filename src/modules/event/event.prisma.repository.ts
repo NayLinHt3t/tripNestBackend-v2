@@ -32,6 +32,42 @@ export class PrismaEventRepository implements EventRepository {
     });
   }
 
+  async findByQuery(query: {
+    location?: string;
+    keyword?: string;
+  }): Promise<Event[]> {
+    const filters = [] as Array<
+      | { location: { contains: string; mode: "insensitive" } }
+      | {
+          OR: Array<
+            | { title: { contains: string; mode: "insensitive" } }
+            | { description: { contains: string; mode: "insensitive" } }
+          >;
+        }
+    >;
+
+    if (query.location) {
+      filters.push({
+        location: { contains: query.location, mode: "insensitive" },
+      });
+    }
+
+    if (query.keyword) {
+      filters.push({
+        OR: [
+          { title: { contains: query.keyword, mode: "insensitive" } },
+          { description: { contains: query.keyword, mode: "insensitive" } },
+        ],
+      });
+    }
+
+    return this.prisma.event.findMany({
+      where: filters.length ? { AND: filters } : undefined,
+      orderBy: { date: "asc" },
+      include: { images: true },
+    });
+  }
+
   async findUpcoming(): Promise<Event[]> {
     return this.prisma.event.findMany({
       where: {
