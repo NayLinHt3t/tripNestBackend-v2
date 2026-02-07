@@ -40,7 +40,7 @@ export function createChatRouter(chatService: ChatService): Router {
           return res.status(401).json({ error: "Unauthorized" });
         }
 
-        const { eventId } = req.params;
+        const { eventId } = req.params as { eventId: string };
         const room = await chatService.getOrCreateRoomForEvent(eventId, userId);
         res.json({
           message: "Successfully joined chat room",
@@ -74,7 +74,7 @@ export function createChatRouter(chatService: ChatService): Router {
           return res.status(401).json({ error: "Unauthorized" });
         }
 
-        const { roomId } = req.params;
+        const { roomId } = req.params as { roomId: string };
         const room = await chatService.getChatRoom(roomId, userId);
 
         if (!room) {
@@ -112,7 +112,7 @@ export function createChatRouter(chatService: ChatService): Router {
           return res.status(401).json({ error: "Unauthorized" });
         }
 
-        const { roomId } = req.params;
+        const { roomId } = req.params as { roomId: string };
         const members = await chatService.getRoomMembers(roomId, userId);
 
         res.json({
@@ -148,7 +148,7 @@ export function createChatRouter(chatService: ChatService): Router {
           return res.status(401).json({ error: "Unauthorized" });
         }
 
-        const { roomId } = req.params;
+        const { roomId } = req.params as { roomId: string };
         const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
         const before = req.query.before
           ? new Date(req.query.before as string)
@@ -195,7 +195,7 @@ export function createChatRouter(chatService: ChatService): Router {
           return res.status(401).json({ error: "Unauthorized" });
         }
 
-        const { roomId } = req.params;
+        const { roomId } = req.params as { roomId: string };
         const { content } = req.body;
 
         if (!content || typeof content !== "string") {
@@ -238,7 +238,7 @@ export function createChatRouter(chatService: ChatService): Router {
           return res.status(401).json({ error: "Unauthorized" });
         }
 
-        const { roomId } = req.params;
+        const { roomId } = req.params as { roomId: string };
         await chatService.leaveRoom(roomId, userId);
 
         res.json({ message: "Successfully left the chat room" });
@@ -266,7 +266,7 @@ export function createChatRouter(chatService: ChatService): Router {
           return res.status(401).json({ error: "Unauthorized" });
         }
 
-        const { roomId } = req.params;
+        const { roomId } = req.params as { roomId: string };
         await chatService.rejoinRoom(roomId, userId);
 
         res.json({ message: "Successfully rejoined the chat room" });

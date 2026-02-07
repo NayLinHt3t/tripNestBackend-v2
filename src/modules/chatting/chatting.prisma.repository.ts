@@ -59,15 +59,19 @@ export class PrismaChatRepository implements ChatRepository {
         eventTitle: room.event.title,
         memberCount: room._count.members,
         lastMessage: lastMsg
-          ? {
-              id: lastMsg.id,
-              chatRoomId: lastMsg.chatRoomId,
-              senderId: lastMsg.senderId,
-              content: lastMsg.content,
-              createdAt: lastMsg.createdAt,
-              senderName: lastMsg.sender.name,
-              senderEmail: lastMsg.sender.email,
-            }
+          ? Object.assign(
+              new ChatMessage(
+                lastMsg.id,
+                lastMsg.chatRoomId,
+                lastMsg.senderId,
+                lastMsg.content,
+                lastMsg.createdAt,
+              ),
+              {
+                senderName: lastMsg.sender.name,
+                senderEmail: lastMsg.sender.email,
+              },
+            )
           : null,
       };
     });
@@ -155,15 +159,18 @@ export class PrismaChatRepository implements ChatRepository {
     });
 
     return messages
-      .map((m) => ({
-        id: m.id,
-        chatRoomId: m.chatRoomId,
-        senderId: m.senderId,
-        content: m.content,
-        createdAt: m.createdAt,
-        senderName: m.sender.name,
-        senderEmail: m.sender.email,
-      }))
+      .map((m) =>
+        Object.assign(
+          new ChatMessage(
+            m.id,
+            m.chatRoomId,
+            m.senderId,
+            m.content,
+            m.createdAt,
+          ),
+          { senderName: m.sender.name, senderEmail: m.sender.email },
+        ),
+      )
       .reverse(); // Return in chronological order
   }
 
