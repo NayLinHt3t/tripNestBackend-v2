@@ -39,8 +39,10 @@ app.use(express.json());
 
 // Initialize Prisma, services, and repositories
 const prisma = createPrismaClient();
+const chatRepository = new PrismaChatRepository(prisma);
+const chatService = new ChatService(chatRepository);
 const bookingRepository = new PrismaBookingRepository(prisma);
-const bookingService = new BookingService(bookingRepository);
+const bookingService = new BookingService(bookingRepository, chatService);
 const userRepository = new PrismaUserRepository(prisma);
 const authService = new AuthService(userRepository);
 const authMiddleware = createAuthMiddleware(authService);
@@ -52,8 +54,6 @@ const profileRepository = new PrismaProfileRepository(prisma);
 const profileService = new ProfileService(profileRepository, prisma);
 const organizerRepository = new PrismaOrganizerRepository(prisma);
 const organizerService = new OrganizerService(organizerRepository, prisma);
-const chatRepository = new PrismaChatRepository(prisma);
-const chatService = new ChatService(chatRepository);
 
 // Initialize sentiment module
 const sentimentJobRepository = new PrismaSentimentJobRepository(prisma);

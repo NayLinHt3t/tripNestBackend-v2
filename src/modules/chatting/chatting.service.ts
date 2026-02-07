@@ -11,6 +11,27 @@ export class ChatService {
   constructor(private chatRepository: ChatRepository) {}
 
   /**
+   * Ensure a chat room exists for an event and add the user as a member.
+   * Does NOT require a confirmed booking (used on booking creation).
+   */
+  async ensureRoomForEvent(eventId: string, userId: string): Promise<ChatRoom> {
+    let room = await this.chatRepository.findRoomByEventId(eventId);
+    if (!room) {
+      room = await this.chatRepository.createRoom(eventId);
+    }
+
+    const existingMember = await this.chatRepository.findMemberByRoomAndUser(
+      room.id!,
+      userId,
+    );
+    if (!existingMember) {
+      await this.chatRepository.addMember(room.id!, userId);
+    }
+
+    return room;
+  }
+
+  /**
    * Get or create a chat room for an event.
    * Only users with confirmed bookings can access.
    */

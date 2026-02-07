@@ -47,12 +47,12 @@ export function createBookingRouter(bookingService: BookingService): Router {
       const { eventId, ticketCounts } = req.body;
       const userId = req.user?.userId;
 
-      const booking = await bookingService.createBooking(
+      const result = await bookingService.createBooking(
         userId || "",
         eventId,
         ticketCounts,
       );
-      res.status(201).json(booking);
+      res.status(201).json(result);
     } catch (error) {
       res.status(400).json({
         error: error instanceof Error ? error.message : "Internal error",

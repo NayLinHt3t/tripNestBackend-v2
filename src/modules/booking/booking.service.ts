@@ -1,9 +1,13 @@
 import { Booking } from "./booking.entity.js";
 import { BookingRepository } from "./booking.repository.js";
 import { Status } from "../../../generated/prisma/enums.js";
+import { ChatService } from "../chatting/chatting.service.js";
 
 export class BookingService {
-  constructor(private bookingRepository: BookingRepository) {}
+  constructor(
+    private bookingRepository: BookingRepository,
+    private chatService?: ChatService,
+  ) {}
 
   async getBooking(bookingId: string): Promise<Booking | null> {
     if (!bookingId) {
@@ -48,7 +52,7 @@ export class BookingService {
     userId: string,
     eventId: string,
     ticketCounts: number,
-  ): Promise<Booking> {
+  ): Promise<{ booking: Booking; chatRoomId?: string }> {
     // Validate inputs
     if (!userId || !eventId || !ticketCounts) {
       throw new Error("Missing required fields: userId, eventId, ticketCounts");
@@ -79,7 +83,17 @@ export class BookingService {
     booking.calculateTotalPrice(event.price);
 
     const savedBooking = await this.bookingRepository.save(booking);
-    return savedBooking;
+
+    let chatRoomId: string | undefined;
+    if (this.chatService) {
+      const room = await this.chatService.ensureRoomForEvent(
+        savedBooking.eventId,
+        savedBooking.userId,
+      );
+      chatRoomId = room.id;
+    }
+
+    return { booking: savedBooking, chatRoomId };
   }
 
   async confirmBooking(bookingId: string): Promise<Booking | null> {
@@ -102,7 +116,9 @@ export class BookingService {
     }
 
     booking.comfirmBooking();
-    return this.bookingRepository.save(booking);
+    const saved = await this.bookingRepository.save(booking);
+
+    return saved;
   }
 
   async cancelBooking(bookingId: string): Promise<Booking | null> {
