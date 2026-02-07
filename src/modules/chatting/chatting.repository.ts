@@ -11,6 +11,10 @@ export interface ChatRepository {
   // Chat Room operations
   findRoomById(roomId: string): Promise<ChatRoom | null>;
   findRoomByEventId(eventId: string): Promise<ChatRoom | null>;
+  findRoomDetailsById(roomId: string): Promise<ChatRoomWithDetails | null>;
+  findRoomDetailsByEventId(
+    eventId: string,
+  ): Promise<ChatRoomWithDetails | null>;
   findRoomsByUserId(userId: string): Promise<ChatRoomWithDetails[]>;
   createRoom(eventId: string): Promise<ChatRoom>;
 

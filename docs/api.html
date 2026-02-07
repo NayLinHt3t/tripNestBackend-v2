@@ -1954,11 +1954,11 @@ Content-Type: multipart/form-data</pre>
       <section id="chat">
         <h2>💬 Chat</h2>
         <p>
-          Chat rooms allow users with confirmed bookings to communicate with other attendees of the same event.
+          Chat rooms allow users with bookings to communicate with other attendees of the same event.
         </p>
 
         <div class="info-box tip">
-          <strong>💡 Note:</strong> Only users with a <strong>confirmed booking</strong> for an event can join and participate in that event's chat room.
+          <strong>💡 Note:</strong> Users with bookings can access the event chat room. Chat rooms now include the event's first image in responses.
         </div>
 
         <!-- Get My Chat Rooms -->
@@ -1990,9 +1990,14 @@ Content-Type: multipart/form-data</pre>
   "rooms": [
     {
       "id": "room-uuid",
-      "eventId": "event-uuid",
+    "createdAt": "2026-02-07T10:00:00.000Z",
+    "eventTitle": "Beach Party 2026",
+    "eventImageUrl": "https://res.cloudinary.com/tripnest/events/cover.jpg"
+    "eventTitle": "Beach Party 2026",
+    "eventImageUrl": "https://res.cloudinary.com/tripnest/events/cover.jpg"
       "createdAt": "2026-02-07T10:00:00.000Z",
       "eventTitle": "Beach Party 2026",
+      "eventImageUrl": "https://res.cloudinary.com/tripnest/events/cover.jpg",
       "memberCount": 15,
       "lastMessage": {
         "id": "msg-uuid",

@@ -48,6 +48,8 @@ export function createChatRouter(chatService: ChatService): Router {
             id: room.id,
             eventId: room.eventId,
             createdAt: room.createdAt,
+            eventTitle: room.eventTitle,
+            eventImageUrl: room.eventImageUrl,
           },
         });
       } catch (error) {
@@ -86,6 +88,8 @@ export function createChatRouter(chatService: ChatService): Router {
             id: room.id,
             eventId: room.eventId,
             createdAt: room.createdAt,
+            eventTitle: room.eventTitle,
+            eventImageUrl: room.eventImageUrl,
           },
         });
       } catch (error) {

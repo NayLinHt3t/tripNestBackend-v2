@@ -29,13 +29,82 @@ export class PrismaChatRepository implements ChatRepository {
     return new ChatRoom(room.id, room.eventId, room.createdAt);
   }
 
+  async findRoomDetailsById(
+    roomId: string,
+  ): Promise<ChatRoomWithDetails | null> {
+    const room = await this.prisma.chatRoom.findUnique({
+      where: { id: roomId },
+      include: {
+        event: {
+          select: {
+            title: true,
+            images: {
+              select: { imageUrl: true },
+              orderBy: { createdAt: "asc" },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
+    if (!room) return null;
+
+    return {
+      id: room.id,
+      eventId: room.eventId,
+      createdAt: room.createdAt,
+      eventTitle: room.event.title,
+      eventImageUrl: room.event.images[0]?.imageUrl,
+    };
+  }
+
+  async findRoomDetailsByEventId(
+    eventId: string,
+  ): Promise<ChatRoomWithDetails | null> {
+    const room = await this.prisma.chatRoom.findUnique({
+      where: { eventId },
+      include: {
+        event: {
+          select: {
+            title: true,
+            images: {
+              select: { imageUrl: true },
+              orderBy: { createdAt: "asc" },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
+    if (!room) return null;
+
+    return {
+      id: room.id,
+      eventId: room.eventId,
+      createdAt: room.createdAt,
+      eventTitle: room.event.title,
+      eventImageUrl: room.event.images[0]?.imageUrl,
+    };
+  }
+
   async findRoomsByUserId(userId: string): Promise<ChatRoomWithDetails[]> {
     const memberships = await this.prisma.chatMember.findMany({
       where: { userId },
       include: {
         chatRoom: {
           include: {
-            event: { select: { title: true } },
+            event: {
+              select: {
+                title: true,
+                images: {
+                  select: { imageUrl: true },
+                  orderBy: { createdAt: "asc" },
+                  take: 1,
+                },
+              },
+            },
             _count: { select: { members: true } },
             messages: {
               orderBy: { createdAt: "desc" },
@@ -57,6 +126,7 @@ export class PrismaChatRepository implements ChatRepository {
         eventId: room.eventId,
         createdAt: room.createdAt,
         eventTitle: room.event.title,
+        eventImageUrl: room.event.images[0]?.imageUrl,
         memberCount: room._count.members,
         lastMessage: lastMsg
           ? Object.assign(

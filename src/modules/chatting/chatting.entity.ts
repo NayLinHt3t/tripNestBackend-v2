@@ -36,6 +36,7 @@ export class ChatMessage {
 
 export interface ChatRoomWithDetails extends ChatRoom {
   eventTitle?: string;
+  eventImageUrl?: string;
   memberCount?: number;
   lastMessage?: ChatMessageWithSender | null;
 }

@@ -38,7 +38,7 @@ export class ChatService {
   async getOrCreateRoomForEvent(
     eventId: string,
     userId: string,
-  ): Promise<ChatRoom> {
+  ): Promise<ChatRoomWithDetails> {
     // Verify user has a confirmed booking for this event
     const hasBooking = await this.chatRepository.hasConfirmedBooking(
       userId,
@@ -65,7 +65,10 @@ export class ChatService {
       await this.chatRepository.addMember(room.id!, userId);
     }
 
-    return room;
+    const roomDetails =
+      await this.chatRepository.findRoomDetailsByEventId(eventId);
+
+    return roomDetails ?? room;
   }
 
   /**
@@ -78,8 +81,11 @@ export class ChatService {
   /**
    * Get chat room details by ID
    */
-  async getChatRoom(roomId: string, userId: string): Promise<ChatRoom | null> {
-    const room = await this.chatRepository.findRoomById(roomId);
+  async getChatRoom(
+    roomId: string,
+    userId: string,
+  ): Promise<ChatRoomWithDetails | null> {
+    const room = await this.chatRepository.findRoomDetailsById(roomId);
     if (!room) return null;
 
     // Verify user is a member
