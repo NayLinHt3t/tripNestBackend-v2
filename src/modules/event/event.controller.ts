@@ -34,10 +34,10 @@ export function createEventRouter(eventService: EventService): Router {
     }
   });
 
-  // Search events by location or keyword
+  // Search events by location, keyword, or mood
   router.get("/search", async (req: Request, res: Response) => {
     try {
-      const { location, keyword } = req.query;
+      const { location, keyword, mood } = req.query;
 
       const locationValue =
         typeof location === "string" && location.trim()
@@ -47,16 +47,19 @@ export function createEventRouter(eventService: EventService): Router {
         typeof keyword === "string" && keyword.trim()
           ? keyword.trim()
           : undefined;
+      const moodValue =
+        typeof mood === "string" && mood.trim() ? mood.trim() : undefined;
 
-      if (!locationValue && !keywordValue) {
+      if (!locationValue && !keywordValue && !moodValue) {
         return res.status(400).json({
-          error: "Location or keyword query parameter is required",
+          error: "Location, keyword, or mood query parameter is required",
         });
       }
 
       const events = await eventService.searchEvents({
         location: locationValue,
         keyword: keywordValue,
+        mood: moodValue,
       });
       res.status(200).json(events);
     } catch (error) {
@@ -90,7 +93,7 @@ export function createEventRouter(eventService: EventService): Router {
     upload.array("images", 5),
     async (req: Request, res: Response) => {
       try {
-        const { title, description, date, location, capacity, price } =
+        const { title, description, date, location, capacity, price, mood } =
           req.body;
         const files = Array.isArray(req.files) ? req.files : [];
 
@@ -118,6 +121,7 @@ export function createEventRouter(eventService: EventService): Router {
           location,
           capacity: parsedCapacity,
           price: parsedPrice,
+          mood,
           imageUrls,
         });
 
@@ -134,7 +138,8 @@ export function createEventRouter(eventService: EventService): Router {
   router.patch("/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params as { id: string };
-      const { title, description, date, location, capacity, price } = req.body;
+      const { title, description, date, location, capacity, price, mood } =
+        req.body;
 
       const event = await eventService.updateEvent(id, {
         title,
@@ -143,6 +148,7 @@ export function createEventRouter(eventService: EventService): Router {
         location,
         capacity,
         price,
+        mood,
       });
 
       res.status(200).json(event);

@@ -793,9 +793,11 @@
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method get">GET</span>
             <span class="endpoint-path">
-              /api/events/search?location=NYC&amp;keyword=music
+              /api/events/search?location=NYC&amp;mood=chill
             </span>
-            <span class="endpoint-desc">Search events by location or keyword</span>
+            <span class="endpoint-desc">
+              Search events by location, keyword, or mood
+            </span>
           </div>
           <div class="endpoint-body">
             <h4>Query Parameters</h4>
@@ -818,12 +820,20 @@
                 <td class="optional">No</td>
                 <td>Matches event title or description</td>
               </tr>
+              <tr>
+                <td>mood</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>Matches event mood</td>
+              </tr>
             </table>
 
             <h4>Examples</h4>
             <pre>GET /api/events/search?location=New%20York</pre>
             <pre>GET /api/events/search?keyword=music</pre>
+            <pre>GET /api/events/search?mood=chill</pre>
             <pre>GET /api/events/search?location=New%20York&amp;keyword=music</pre>
+            <pre>GET /api/events/search?location=New%20York&amp;mood=chill</pre>
           </div>
         </div>
 
@@ -907,10 +917,16 @@
                 <td>Ticket price</td>
               </tr>
               <tr>
-                <td>images</td>
-                <td>file[]</td>
+                <td>mood</td>
+                <td>string</td>
                 <td class="optional">No</td>
-                <td>Image files for the event (max 5, multipart/form-data)</td>
+                <td>Event mood or theme</td>
+              </tr>
+              <tr>
+                <td>imageUrls</td>
+                <td>string[]</td>
+                <td class="optional">No</td>
+                <td>Image URLs for the event (max 5)</td>
               </tr>
             </table>
 
@@ -922,7 +938,11 @@
   "date": "2026-07-15T18:00:00.000Z",
   "location": "Central Park, NYC",
   "capacity": 5000,
-  "price": 99.99
+  "price": 99.99,
+  "mood": "vibrant",
+  "imageUrls": [
+    "https://res.cloudinary.com/tripnest/events/banner.jpg"
+  ]
 }</pre
             >
 

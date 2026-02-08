@@ -1,26 +1,36 @@
 import { PrismaClient } from "../database/prisma.js";
+import { Prisma } from "../../../generated/prisma/client.js";
 import { Event, CreateEventDto, UpdateEventDto } from "./event.entity.js";
 import { EventRepository } from "./event.repository.js";
+
+type EventWithImages = Prisma.EventGetPayload<{ include: { images: true } }>;
+
+const toEvent = (event: EventWithImages): Event => ({
+  ...event,
+  images: event.images ?? [],
+});
 
 export class PrismaEventRepository implements EventRepository {
   constructor(private prisma: PrismaClient) {}
 
   async findById(id: string): Promise<Event | null> {
-    return this.prisma.event.findUnique({
+    const event = await this.prisma.event.findUnique({
       where: { id },
       include: { images: true },
     });
+    return event ? toEvent(event) : null;
   }
 
   async findAll(): Promise<Event[]> {
-    return this.prisma.event.findMany({
+    const events = await this.prisma.event.findMany({
       orderBy: { date: "asc" },
       include: { images: true },
     });
+    return events.map(toEvent);
   }
 
   async findByLocation(location: string): Promise<Event[]> {
-    return this.prisma.event.findMany({
+    const events = await this.prisma.event.findMany({
       where: {
         location: {
           contains: location,
@@ -30,11 +40,13 @@ export class PrismaEventRepository implements EventRepository {
       orderBy: { date: "asc" },
       include: { images: true },
     });
+    return events.map(toEvent);
   }
 
   async findByQuery(query: {
     location?: string;
     keyword?: string;
+    mood?: string;
   }): Promise<Event[]> {
     const filters = [] as Array<
       | { location: { contains: string; mode: "insensitive" } }
@@ -44,6 +56,7 @@ export class PrismaEventRepository implements EventRepository {
             | { description: { contains: string; mode: "insensitive" } }
           >;
         }
+      | { mood: { contains: string; mode: "insensitive" } }
     >;
 
     if (query.location) {
@@ -61,15 +74,20 @@ export class PrismaEventRepository implements EventRepository {
       });
     }
 
-    return this.prisma.event.findMany({
+    if (query.mood) {
+      filters.push({ mood: { contains: query.mood, mode: "insensitive" } });
+    }
+
+    const events = await this.prisma.event.findMany({
       where: filters.length ? { AND: filters } : undefined,
       orderBy: { date: "asc" },
       include: { images: true },
     });
+    return events.map(toEvent);
   }
 
   async findUpcoming(): Promise<Event[]> {
-    return this.prisma.event.findMany({
+    const events = await this.prisma.event.findMany({
       where: {
         date: {
           gte: new Date(),
@@ -78,10 +96,11 @@ export class PrismaEventRepository implements EventRepository {
       orderBy: { date: "asc" },
       include: { images: true },
     });
+    return events.map(toEvent);
   }
 
   async create(data: CreateEventDto): Promise<Event> {
-    return this.prisma.event.create({
+    const event = await this.prisma.event.create({
       data: {
         title: data.title,
         description: data.description,
@@ -89,6 +108,7 @@ export class PrismaEventRepository implements EventRepository {
         location: data.location,
         capacity: data.capacity,
         price: data.price,
+        mood: data.mood ?? undefined,
         ...(data.imageUrls && data.imageUrls.length
           ? {
               images: {
@@ -99,11 +119,12 @@ export class PrismaEventRepository implements EventRepository {
       },
       include: { images: true },
     });
+    return toEvent(event);
   }
 
   async update(id: string, data: UpdateEventDto): Promise<Event | null> {
     try {
-      return await this.prisma.event.update({
+      const event = await this.prisma.event.update({
         where: { id },
         data: {
           ...(data.title && { title: data.title }),
@@ -112,9 +133,11 @@ export class PrismaEventRepository implements EventRepository {
           ...(data.location && { location: data.location }),
           ...(data.capacity && { capacity: data.capacity }),
           ...(data.price && { price: data.price }),
+          ...(data.mood !== undefined && { mood: data.mood }),
         },
         include: { images: true },
       });
+      return toEvent(event);
     } catch {
       return null;
     }

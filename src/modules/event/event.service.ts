@@ -29,9 +29,10 @@ export class EventService {
   async searchEvents(query: {
     location?: string;
     keyword?: string;
+    mood?: string;
   }): Promise<Event[]> {
-    if (!query.location && !query.keyword) {
-      throw new Error("Location or keyword is required");
+    if (!query.location && !query.keyword && !query.mood) {
+      throw new Error("Location, keyword, or mood is required");
     }
 
     return this.eventRepository.findByQuery(query);

@@ -13,6 +13,7 @@ export interface Event {
   location: string;
   capacity: number;
   price: number;
+  mood?: string | null;
   createdAt: Date;
 }
 
@@ -23,6 +24,7 @@ export interface CreateEventDto {
   location: string;
   capacity: number;
   price: number;
+  mood?: string | null;
   imageUrls?: string[];
 }
 
@@ -33,4 +35,5 @@ export interface UpdateEventDto {
   location?: string;
   capacity?: number;
   price?: number;
+  mood?: string | null;
 }

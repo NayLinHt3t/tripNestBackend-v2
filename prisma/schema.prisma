@@ -59,6 +59,7 @@ model Event {
   location    String
   capacity    Int
   price       Float
+  mood        String?
   createdAt   DateTime      @default(now())
   bookings    Booking[]
   images      EventImages[]
