@@ -337,10 +337,12 @@
           <li><a href="#authentication">Authentication</a></li>
           <li><a href="#auth">Auth</a></li>
           <li><a href="#events">Events</a></li>
+          <li><a href="#dashboard">Dashboard</a></li>
           <li><a href="#bookings">Bookings</a></li>
           <li><a href="#reviews">Reviews</a></li>
           <li><a href="#sentiment">Sentiment</a></li>
           <li><a href="#profile">Profile</a></li>
+          <li><a href="#organizers">Organizers</a></li>
           <li><a href="#chat">Chat</a></li>
         </ul>
       </div>
@@ -870,8 +872,17 @@
             <span class="method post">POST</span>
             <span class="endpoint-path">/api/events</span>
             <span class="endpoint-desc">Create a new event</span>
+            <span class="auth-badge">Auth</span>
           </div>
           <div class="endpoint-body">
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
+
+            <div class="info-box warning">
+              <strong>🔒 Organizer Required:</strong> You must have an organizer
+              profile to create events. Use /api/organizers to create one.
+            </div>
+
             <h4>Request Body</h4>
             <table>
               <tr>
@@ -964,6 +975,8 @@
   "location": "Central Park, NYC",
   "capacity": 5000,
   "price": 99.99,
+  "mood": "vibrant",
+  "organizerId": "org123456",
   "createdAt": "2026-01-20T10:00:00.000Z"
 }</pre
             >
@@ -976,8 +989,12 @@
             <span class="method patch">PATCH</span>
             <span class="endpoint-path">/api/events/:id</span>
             <span class="endpoint-desc">Update an event</span>
+            <span class="auth-badge">Auth</span>
           </div>
           <div class="endpoint-body">
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
+
             <h4>Request Body</h4>
             <p>Include only fields you want to update:</p>
             <pre>
@@ -995,10 +1012,133 @@
             <span class="method delete">DELETE</span>
             <span class="endpoint-path">/api/events/:id</span>
             <span class="endpoint-desc">Delete an event</span>
+            <span class="auth-badge">Auth</span>
           </div>
           <div class="endpoint-body">
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
+
             <h4>Success Response (200)</h4>
             <pre>{ "message": "Event deleted successfully" }</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dashboard Endpoints -->
+      <section id="dashboard">
+        <h2>📊 Dashboard Endpoints</h2>
+        <div class="info-box warning">
+          <strong>🔒 Authentication Required:</strong> All dashboard endpoints
+          require a valid JWT token and an organizer profile.
+        </div>
+
+        <!-- Summary -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/dashboard/summary</span>
+            <span class="endpoint-desc">Organizer dashboard summary</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
+
+            <h4>Success Response (200)</h4>
+            <pre>
+{
+  "organizer": {
+    "id": "org123456",
+    "userId": "user123",
+    "organizationName": "TripNest Org",
+    "contactNumber": "123-456-7890",
+    "address": "Downtown"
+  },
+  "bookingStatus": {
+    "PENDING": 2,
+    "CONFIRMED": 5,
+    "CANCELLED": 1
+  },
+  "events": [
+    {
+      "eventId": "evt123",
+      "title": "Summer Music Festival",
+      "totalRevenue": 499.95,
+      "totalBookings": 5,
+      "totalTickets": 5
+    }
+  ],
+  "totalRevenue": 499.95,
+  "totalBookings": 8,
+  "totalTickets": 10
+}</pre
+            >
+          </div>
+        </div>
+
+        <!-- Events Revenue -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/dashboard/events</span>
+            <span class="endpoint-desc">Event revenue breakdown</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
+
+            <h4>Success Response (200)</h4>
+            <pre>
+{
+  "organizer": {
+    "id": "org123456",
+    "userId": "user123",
+    "organizationName": "TripNest Org",
+    "contactNumber": "123-456-7890",
+    "address": "Downtown"
+  },
+  "events": [
+    {
+      "eventId": "evt123",
+      "title": "Summer Music Festival",
+      "totalRevenue": 499.95,
+      "totalBookings": 5,
+      "totalTickets": 5
+    }
+  ]
+}</pre
+            >
+          </div>
+        </div>
+
+        <!-- Revenue Totals -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/dashboard/revenue</span>
+            <span class="endpoint-desc">Revenue totals</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
+
+            <h4>Success Response (200)</h4>
+            <pre>
+{
+  "organizer": {
+    "id": "org123456",
+    "userId": "user123",
+    "organizationName": "TripNest Org",
+    "contactNumber": "123-456-7890",
+    "address": "Downtown"
+  },
+  "totalRevenue": 499.95,
+  "totalBookings": 8,
+  "totalTickets": 10
+}</pre
+            >
           </div>
         </div>
       </section>
@@ -1968,6 +2108,233 @@ Content-Type: multipart/form-data</pre>
           <li><strong>Storage:</strong> Images stored in <code>tripnest/profiles</code> folder on Cloudinary</li>
           <li><strong>URL:</strong> Returns secure HTTPS URL for the uploaded image</li>
         </ul>
+      </section>
+
+      <!-- Organizer Endpoints -->
+      <section id="organizers">
+        <h2>🏢 Organizer Endpoints</h2>
+        <p>
+          <strong>🔒 Authentication Required:</strong> All organizer endpoints
+          require a valid JWT token in the Authorization header.
+        </p>
+
+        <!-- Get Current Organizer Profile -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/organizers/me</span>
+            <span class="endpoint-desc">Get current organizer profile</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
+
+            <h4>Success Response (200)</h4>
+            <pre>
+{
+  "id": "org123456",
+  "userId": "user123",
+  "organizationName": "TripNest Org",
+  "contactNumber": "123-456-7890",
+  "address": "Downtown"
+}</pre
+            >
+
+            <h4>Default Response (no profile yet)</h4>
+            <pre>
+{
+  "id": null,
+  "userId": "user123",
+  "organizationName": "Not Set",
+  "contactNumber": "Not Set",
+  "address": "Not Set"
+}</pre
+            >
+          </div>
+        </div>
+
+        <!-- Get Organizer Profile by ID -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/organizers/:id</span>
+            <span class="endpoint-desc">Get organizer profile by ID</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
+
+            <h4>Path Parameters</h4>
+            <table>
+              <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>id</td>
+                <td>string</td>
+                <td class="required">Yes</td>
+                <td>Organizer profile ID</td>
+              </tr>
+            </table>
+
+            <h4>Success Response (200)</h4>
+            <pre>
+{
+  "id": "org123456",
+  "userId": "user123",
+  "organizationName": "TripNest Org",
+  "contactNumber": "123-456-7890",
+  "address": "Downtown"
+}</pre
+            >
+
+            <h4>Error Response (404)</h4>
+            <pre>{ "error": "Profile not found" }</pre>
+          </div>
+        </div>
+
+        <!-- Create Organizer Profile -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/organizers</span>
+            <span class="endpoint-desc">Create organizer profile</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
+
+            <h4>Request Body</h4>
+            <table>
+              <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>organizationName</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>Organization name</td>
+              </tr>
+              <tr>
+                <td>contactNumber</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>Contact number</td>
+              </tr>
+              <tr>
+                <td>address</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>Business address</td>
+              </tr>
+            </table>
+
+            <h4>Example Request</h4>
+            <pre>
+{
+  "organizationName": "TripNest Org",
+  "contactNumber": "123-456-7890",
+  "address": "Downtown"
+}</pre
+            >
+
+            <h4>Success Response (201)</h4>
+            <pre>
+{
+  "id": "org123456",
+  "userId": "user123",
+  "organizationName": "TripNest Org",
+  "contactNumber": "123-456-7890",
+  "address": "Downtown"
+}</pre
+            >
+          </div>
+        </div>
+
+        <!-- Update Current Organizer Profile -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path">/api/organizers/me</span>
+            <span class="endpoint-desc">Update current organizer profile</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
+
+            <h4>Request Body</h4>
+            <p>Include only fields you want to update:</p>
+            <pre>
+{
+  "organizationName": "Updated Org",
+  "contactNumber": "123-456-0000"
+}</pre
+            >
+
+            <h4>Success Response (200)</h4>
+            <pre>
+{
+  "id": "org123456",
+  "userId": "user123",
+  "organizationName": "Updated Org",
+  "contactNumber": "123-456-0000",
+  "address": "Downtown"
+}</pre
+            >
+          </div>
+        </div>
+
+        <!-- Update Organizer Profile by ID -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path">/api/organizers/:id</span>
+            <span class="endpoint-desc">Update organizer profile by ID</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
+
+            <h4>Request Body</h4>
+            <p>Include only fields you want to update:</p>
+            <pre>
+{
+  "address": "Uptown"
+}</pre
+            >
+          </div>
+        </div>
+
+        <!-- Delete Organizer Profile -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method delete">DELETE</span>
+            <span class="endpoint-path">/api/organizers/:id</span>
+            <span class="endpoint-desc">Delete organizer profile</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Headers</h4>
+            <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
+
+            <h4>Success Response (200)</h4>
+            <pre>{ "message": "Profile deleted successfully" }</pre>
+
+            <h4>Error Response (404)</h4>
+            <pre>{ "error": "Profile not found" }</pre>
+          </div>
+        </div>
       </section>
 
       <!-- Chat Endpoints -->

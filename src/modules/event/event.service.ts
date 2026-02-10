@@ -45,6 +45,10 @@ export class EventService {
       );
     }
 
+    if (!data.organizerId) {
+      throw new Error("Organizer profile is required to create an event");
+    }
+
     if (data.capacity <= 0) {
       throw new Error("Capacity must be greater than 0");
     }

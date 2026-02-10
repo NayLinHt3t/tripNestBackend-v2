@@ -14,6 +14,7 @@ export interface Event {
   capacity: number;
   price: number;
   mood?: string | null;
+  organizerId?: string | null;
   createdAt: Date;
 }
 
@@ -26,6 +27,7 @@ export interface CreateEventDto {
   price: number;
   mood?: string | null;
   imageUrls?: string[];
+  organizerId: string;
 }
 
 export interface UpdateEventDto {

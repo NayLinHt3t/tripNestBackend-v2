@@ -30,6 +30,9 @@ import { PrismaOrganizerRepository } from "./modules/organizer/organizer.prisma.
 import { createChatRouter } from "./modules/chatting/chatting.controller.js";
 import { ChatService } from "./modules/chatting/chatting.service.js";
 import { PrismaChatRepository } from "./modules/chatting/chatting.prisma.repository.js";
+import { createDashboardRouter } from "./modules/dashboard/dashboard.controller.js";
+import { DashboardService } from "./modules/dashboard/dashboard.service.js";
+import { PrismaDashboardRepository } from "./modules/dashboard/dashboard.prisma.repository.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,6 +57,8 @@ const profileRepository = new PrismaProfileRepository(prisma);
 const profileService = new ProfileService(profileRepository, prisma);
 const organizerRepository = new PrismaOrganizerRepository(prisma);
 const organizerService = new OrganizerService(organizerRepository, prisma);
+const dashboardRepository = new PrismaDashboardRepository(prisma);
+const dashboardService = new DashboardService(dashboardRepository);
 
 // Initialize sentiment module
 const sentimentJobRepository = new PrismaSentimentJobRepository(prisma);
@@ -79,8 +84,11 @@ app.get("/", (req, res) => {
 // Mount auth routes (public, but change-password requires auth)
 app.use("/api/auth", createAuthRouter(authService, authMiddleware));
 
-// Mount event routes (public - anyone can view events)
-app.use("/api/events", createEventRouter(eventService));
+// Mount event routes (public read, protected write)
+app.use(
+  "/api/events",
+  createEventRouter(eventService, authMiddleware, organizerService),
+);
 
 // Mount review routes (mixed - some public, some protected)
 app.use("/api/reviews", authMiddleware, createReviewRouter(reviewService));
@@ -105,6 +113,13 @@ app.use(
 
 // Mount chat routes (protected)
 app.use("/api/chat", authMiddleware, createChatRouter(chatService));
+
+// Mount dashboard routes (protected)
+app.use(
+  "/api/dashboard",
+  authMiddleware,
+  createDashboardRouter(dashboardService, organizerService),
+);
 
 // Start sentiment worker
 sentimentWorker.start();

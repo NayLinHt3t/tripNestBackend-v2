@@ -109,6 +109,7 @@ export class PrismaEventRepository implements EventRepository {
         capacity: data.capacity,
         price: data.price,
         mood: data.mood ?? undefined,
+        organizerId: data.organizerId,
         ...(data.imageUrls && data.imageUrls.length
           ? {
               images: {

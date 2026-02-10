@@ -41,7 +41,9 @@ model OrganizerProfile {
   address          String?
   createdAt        DateTime @default(now())
   user             User     @relation(fields: [userId], references: [id])
+  events           Event[]
 }
+
 
 model EventImages {
   id        String   @id @default(uuid())
@@ -60,11 +62,13 @@ model Event {
   capacity    Int
   price       Float
   mood        String?
+  organizerId String?
   createdAt   DateTime      @default(now())
   bookings    Booking[]
   images      EventImages[]
   reviews     Review[]
   chatRoom    ChatRoom?
+  organizer   OrganizerProfile? @relation(fields: [organizerId], references: [id])
 }
 
 model Booking {

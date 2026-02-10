@@ -1,9 +1,15 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, RequestHandler } from "express";
 import multer from "multer";
 import { EventService } from "./event.service.js";
 import { uploadImageBuffer } from "../utils/cloudinary.js";
+import { AuthenticatedRequest } from "../auth/auth.middleware.js";
+import { OrganizerService } from "../organizer/organizer.service.js";
 
-export function createEventRouter(eventService: EventService): Router {
+export function createEventRouter(
+  eventService: EventService,
+  authMiddleware?: RequestHandler,
+  organizerService?: OrganizerService,
+): Router {
   const router = Router();
   const upload = multer({
     storage: multer.memoryStorage(),
@@ -88,54 +94,71 @@ export function createEventRouter(eventService: EventService): Router {
   });
 
   // Create new event
-  router.post(
-    "/",
-    upload.array("images", 5),
-    async (req: Request, res: Response) => {
-      try {
-        const { title, description, date, location, capacity, price, mood } =
-          req.body;
-        const files = Array.isArray(req.files) ? req.files : [];
-
-        const imageUrls = files.length
-          ? await Promise.all(
-              files.map(async (file) => {
-                const uploaded = await uploadImageBuffer(file.buffer, {
-                  folder: "tripnest/events",
-                  resource_type: "image",
-                });
-                return uploaded.secure_url;
-              }),
-            )
-          : [];
-
-        const parsedCapacity =
-          capacity !== undefined ? Number(capacity) : capacity;
-        const parsedPrice = price !== undefined ? Number(price) : price;
-        const parsedDate = date ? new Date(date) : date;
-
-        const event = await eventService.createEvent({
-          title,
-          description,
-          date: parsedDate,
-          location,
-          capacity: parsedCapacity,
-          price: parsedPrice,
-          mood,
-          imageUrls,
-        });
-
-        res.status(201).json(event);
-      } catch (error) {
-        res.status(400).json({
-          error: error instanceof Error ? error.message : "Internal error",
+  const createHandler = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      if (!organizerService) {
+        return res.status(500).json({ error: "Organizer service unavailable" });
+      }
+      const organizerProfile =
+        await organizerService.getProfileByUserId(userId);
+      if (!organizerProfile.id) {
+        return res.status(400).json({
+          error: "Organizer profile is required to create an event",
         });
       }
-    },
-  );
+      const { title, description, date, location, capacity, price, mood } =
+        req.body;
+      const files = Array.isArray(req.files) ? req.files : [];
+
+      const imageUrls = files.length
+        ? await Promise.all(
+            files.map(async (file) => {
+              const uploaded = await uploadImageBuffer(file.buffer, {
+                folder: "tripnest/events",
+                resource_type: "image",
+              });
+              return uploaded.secure_url;
+            }),
+          )
+        : [];
+
+      const parsedCapacity =
+        capacity !== undefined ? Number(capacity) : capacity;
+      const parsedPrice = price !== undefined ? Number(price) : price;
+      const parsedDate = date ? new Date(date) : date;
+
+      const event = await eventService.createEvent({
+        title,
+        description,
+        date: parsedDate,
+        location,
+        capacity: parsedCapacity,
+        price: parsedPrice,
+        mood,
+        imageUrls,
+        organizerId: organizerProfile.id,
+      });
+
+      res.status(201).json(event);
+    } catch (error) {
+      res.status(400).json({
+        error: error instanceof Error ? error.message : "Internal error",
+      });
+    }
+  };
+
+  if (authMiddleware) {
+    router.post("/", authMiddleware, upload.array("images", 5), createHandler);
+  } else {
+    router.post("/", upload.array("images", 5), createHandler);
+  }
 
   // Update event
-  router.patch("/:id", async (req: Request, res: Response) => {
+  const updateHandler = async (req: Request, res: Response) => {
     try {
       const { id } = req.params as { id: string };
       const { title, description, date, location, capacity, price, mood } =
@@ -160,10 +183,16 @@ export function createEventRouter(eventService: EventService): Router {
         error: error instanceof Error ? error.message : "Internal error",
       });
     }
-  });
+  };
+
+  if (authMiddleware) {
+    router.patch("/:id", authMiddleware, updateHandler);
+  } else {
+    router.patch("/:id", updateHandler);
+  }
 
   // Delete event
-  router.delete("/:id", async (req: Request, res: Response) => {
+  const deleteHandler = async (req: Request, res: Response) => {
     try {
       const { id } = req.params as { id: string };
       await eventService.deleteEvent(id);
@@ -176,7 +205,13 @@ export function createEventRouter(eventService: EventService): Router {
         error: error instanceof Error ? error.message : "Internal error",
       });
     }
-  });
+  };
+
+  if (authMiddleware) {
+    router.delete("/:id", authMiddleware, deleteHandler);
+  } else {
+    router.delete("/:id", deleteHandler);
+  }
 
   return router;
 }
