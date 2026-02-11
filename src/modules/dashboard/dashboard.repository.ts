@@ -15,4 +15,11 @@ export interface BookingWithEvent {
 
 export interface DashboardRepository {
   getBookingsWithEvent(organizerId: string): Promise<BookingWithEvent[]>;
+  getOrganizerEvents(organizerId: string): Promise<
+    Array<{
+      id: string;
+      title: string;
+      price: number;
+    }>
+  >;
 }

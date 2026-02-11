@@ -6,8 +6,10 @@ export class DashboardService {
   constructor(private dashboardRepository: DashboardRepository) {}
 
   async getSummary(organizerId: string): Promise<DashboardSummary> {
-    const bookings =
-      await this.dashboardRepository.getBookingsWithEvent(organizerId);
+    const [bookings, allEvents] = await Promise.all([
+      this.dashboardRepository.getBookingsWithEvent(organizerId),
+      this.dashboardRepository.getOrganizerEvents(organizerId),
+    ]);
 
     const bookingStatus: Record<Status, number> = {
       PENDING: 0,
@@ -16,6 +18,17 @@ export class DashboardService {
     };
 
     const eventRevenueMap = new Map<string, EventRevenueSummary>();
+
+    // Initialize all organizer events with zero stats
+    for (const event of allEvents) {
+      eventRevenueMap.set(event.id, {
+        eventId: event.id,
+        title: event.title,
+        totalRevenue: 0,
+        totalBookings: 0,
+        totalTickets: 0,
+      });
+    }
 
     let totalRevenue = 0;
     let totalBookings = 0;

@@ -30,4 +30,23 @@ export class PrismaDashboardRepository implements DashboardRepository {
       },
     });
   }
+
+  async getOrganizerEvents(organizerId: string): Promise<
+    Array<{
+      id: string;
+      title: string;
+      price: number;
+    }>
+  > {
+    return this.prisma.event.findMany({
+      where: {
+        organizerId,
+      },
+      select: {
+        id: true,
+        title: true,
+        price: true,
+      },
+    });
+  }
 }
