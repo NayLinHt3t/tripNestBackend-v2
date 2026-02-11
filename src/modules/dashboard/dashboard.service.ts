@@ -1,7 +1,6 @@
 import { Status } from "../../../generated/prisma/enums.js";
 import { DashboardRepository } from "./dashboard.repository.js";
 import { DashboardSummary, EventRevenueSummary } from "./dashboard.entity.js";
-import { Event } from "../event/event.entity.js";
 
 export class DashboardService {
   constructor(private dashboardRepository: DashboardRepository) {}
@@ -101,9 +100,5 @@ export class DashboardService {
       totalBookings: summary.totalBookings,
       totalTickets: summary.totalTickets,
     };
-  }
-
-  async getMyEvents(organizerId: string): Promise<Event[]> {
-    return this.dashboardRepository.getOrganizerFullEvents(organizerId);
   }
 }
