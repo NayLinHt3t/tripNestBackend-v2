@@ -1,4 +1,5 @@
 import { Status } from "../../../generated/prisma/enums.js";
+import { Event } from "../event/event.entity.js";
 
 export interface BookingWithEvent {
   id: string;
@@ -24,4 +25,5 @@ export interface DashboardRepository {
       images: Array<{ id: string; imageUrl: string }>;
     }>
   >;
+  getOrganizerFullEvents(organizerId: string): Promise<Event[]>;
 }

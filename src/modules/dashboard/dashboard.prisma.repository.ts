@@ -3,6 +3,7 @@ import {
   DashboardRepository,
   BookingWithEvent,
 } from "./dashboard.repository.js";
+import { Event } from "../event/event.entity.js";
 
 export class PrismaDashboardRepository implements DashboardRepository {
   constructor(private prisma: PrismaClient) {}
@@ -61,5 +62,35 @@ export class PrismaDashboardRepository implements DashboardRepository {
         },
       },
     });
+  }
+
+  async getOrganizerFullEvents(organizerId: string): Promise<Event[]> {
+    const events = await this.prisma.event.findMany({
+      where: {
+        organizerId,
+      },
+      include: {
+        images: {
+          select: {
+            id: true,
+            imageUrl: true,
+          },
+        },
+      },
+    });
+
+    return events.map((event) => ({
+      id: event.id,
+      title: event.title,
+      description: event.description,
+      date: event.date,
+      location: event.location,
+      capacity: event.capacity,
+      price: event.price,
+      mood: event.mood,
+      organizerId: event.organizerId,
+      createdAt: event.createdAt,
+      images: event.images,
+    }));
   }
 }
