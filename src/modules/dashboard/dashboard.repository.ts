@@ -10,6 +10,7 @@ export interface BookingWithEvent {
     id: string;
     title: string;
     price: number;
+    images: Array<{ id: string; imageUrl: string }>;
   } | null;
 }
 
@@ -20,6 +21,7 @@ export interface DashboardRepository {
       id: string;
       title: string;
       price: number;
+      images: Array<{ id: string; imageUrl: string }>;
     }>
   >;
 }

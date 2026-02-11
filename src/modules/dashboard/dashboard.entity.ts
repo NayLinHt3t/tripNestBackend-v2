@@ -8,6 +8,7 @@ export interface BookingStatusSummary {
 export interface EventRevenueSummary {
   eventId: string;
   title: string;
+  images: Array<{ id: string; imageUrl: string }>;
   totalRevenue: number;
   totalBookings: number;
   totalTickets: number;

@@ -25,6 +25,12 @@ export class PrismaDashboardRepository implements DashboardRepository {
             id: true,
             title: true,
             price: true,
+            images: {
+              select: {
+                id: true,
+                imageUrl: true,
+              },
+            },
           },
         },
       },
@@ -36,6 +42,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
       id: string;
       title: string;
       price: number;
+      images: Array<{ id: string; imageUrl: string }>;
     }>
   > {
     return this.prisma.event.findMany({
@@ -46,6 +53,12 @@ export class PrismaDashboardRepository implements DashboardRepository {
         id: true,
         title: true,
         price: true,
+        images: {
+          select: {
+            id: true,
+            imageUrl: true,
+          },
+        },
       },
     });
   }

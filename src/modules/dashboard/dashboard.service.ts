@@ -24,6 +24,7 @@ export class DashboardService {
       eventRevenueMap.set(event.id, {
         eventId: event.id,
         title: event.title,
+        images: event.images,
         totalRevenue: 0,
         totalBookings: 0,
         totalTickets: 0,
@@ -51,6 +52,7 @@ export class DashboardService {
       const existing = eventRevenueMap.get(eventKey) ?? {
         eventId: booking.event.id,
         title: booking.event.title,
+        images: booking.event.images,
         totalRevenue: 0,
         totalBookings: 0,
         totalTickets: 0,
