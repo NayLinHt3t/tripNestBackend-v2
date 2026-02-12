@@ -10,6 +10,37 @@ import {
 export class ChatService {
   constructor(private chatRepository: ChatRepository) {}
 
+  private async ensureOrganizerMemberForEvent(
+    eventId: string,
+    roomId: string,
+  ): Promise<void> {
+    const organizerUserId =
+      await this.chatRepository.getEventOrganizerUserId(eventId);
+    if (!organizerUserId) return;
+
+    const existingOrganizer = await this.chatRepository.findMemberByRoomAndUser(
+      roomId,
+      organizerUserId,
+    );
+    if (!existingOrganizer) {
+      await this.chatRepository.addMember(roomId, organizerUserId);
+    }
+  }
+
+  /**
+   * Ensure a chat room exists for an event and add the organizer as a member.
+   */
+  async ensureOrganizerRoomForEvent(eventId: string): Promise<ChatRoom> {
+    let room = await this.chatRepository.findRoomByEventId(eventId);
+    if (!room) {
+      room = await this.chatRepository.createRoom(eventId);
+    }
+
+    await this.ensureOrganizerMemberForEvent(eventId, room.id!);
+
+    return room;
+  }
+
   /**
    * Ensure a chat room exists for an event and add the user as a member.
    * Does NOT require a confirmed booking (used on booking creation).
@@ -19,6 +50,8 @@ export class ChatService {
     if (!room) {
       room = await this.chatRepository.createRoom(eventId);
     }
+
+    await this.ensureOrganizerMemberForEvent(eventId, room.id!);
 
     const existingMember = await this.chatRepository.findMemberByRoomAndUser(
       room.id!,
@@ -55,6 +88,8 @@ export class ChatService {
     if (!room) {
       room = await this.chatRepository.createRoom(eventId);
     }
+
+    await this.ensureOrganizerMemberForEvent(eventId, room.id!);
 
     // Add user as a member if not already
     const existingMember = await this.chatRepository.findMemberByRoomAndUser(

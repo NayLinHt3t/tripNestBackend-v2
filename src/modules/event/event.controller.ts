@@ -4,11 +4,13 @@ import { EventService } from "./event.service.js";
 import { uploadImageBuffer } from "../utils/cloudinary.js";
 import { AuthenticatedRequest } from "../auth/auth.middleware.js";
 import { OrganizerService } from "../organizer/organizer.service.js";
+import { ChatService } from "../chatting/chatting.service.js";
 
 export function createEventRouter(
   eventService: EventService,
   authMiddleware?: RequestHandler,
   organizerService?: OrganizerService,
+  chatService?: ChatService,
 ): Router {
   const router = Router();
   const upload = multer({
@@ -142,6 +144,10 @@ export function createEventRouter(
         imageUrls,
         organizerId: organizerProfile.id,
       });
+
+      if (chatService) {
+        await chatService.ensureOrganizerRoomForEvent(event.id!);
+      }
 
       res.status(201).json(event);
     } catch (error) {

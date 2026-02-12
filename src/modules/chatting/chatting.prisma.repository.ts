@@ -154,6 +154,19 @@ export class PrismaChatRepository implements ChatRepository {
     return new ChatRoom(room.id, room.eventId, room.createdAt);
   }
 
+  async getEventOrganizerUserId(eventId: string): Promise<string | null> {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: {
+        organizer: {
+          select: { userId: true },
+        },
+      },
+    });
+
+    return event?.organizer?.userId ?? null;
+  }
+
   async findMemberByRoomAndUser(
     roomId: string,
     userId: string,

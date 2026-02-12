@@ -87,7 +87,12 @@ app.use("/api/auth", createAuthRouter(authService, authMiddleware));
 // Mount event routes (public read, protected write)
 app.use(
   "/api/events",
-  createEventRouter(eventService, authMiddleware, organizerService),
+  createEventRouter(
+    eventService,
+    authMiddleware,
+    organizerService,
+    chatService,
+  ),
 );
 
 // Mount review routes (mixed - some public, some protected)

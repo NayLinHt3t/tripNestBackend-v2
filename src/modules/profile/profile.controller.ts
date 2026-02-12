@@ -259,6 +259,7 @@ export function createProfileRouter(profileService: ProfileService): Router {
       });
     }
   });
+  
 
   return router;
 }

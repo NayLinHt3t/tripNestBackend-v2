@@ -26,7 +26,7 @@ export function createAuthRouter(
         token,
         userId: user.userId,
         email: user.email,
-        expiresIn: "24h",
+        expiresIn: "7d",
         message: "Registration successful",
       });
     } catch (error) {
@@ -56,7 +56,7 @@ export function createAuthRouter(
         token: result.token,
         userId: result.userId,
         email: result.email,
-        expiresIn: "24h",
+        expiresIn: "7d",
         message: "Login successful",
       });
     } catch (error) {

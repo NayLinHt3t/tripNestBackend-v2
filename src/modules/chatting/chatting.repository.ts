@@ -17,6 +17,7 @@ export interface ChatRepository {
   ): Promise<ChatRoomWithDetails | null>;
   findRoomsByUserId(userId: string): Promise<ChatRoomWithDetails[]>;
   createRoom(eventId: string): Promise<ChatRoom>;
+  getEventOrganizerUserId(eventId: string): Promise<string | null>;
 
   // Chat Member operations
   findMemberByRoomAndUser(
