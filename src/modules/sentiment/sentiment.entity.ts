@@ -25,3 +25,10 @@ export interface SentimentResult {
   label: string;
   score: number;
 }
+
+export interface SentimentAnalysisResult {
+  reviewId: string;
+  label: string;
+  score: number;
+  class: number;
+}

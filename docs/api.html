@@ -1591,18 +1591,18 @@
 
         <div class="info-box tip">
           <strong>How it works:</strong> When a review is created, a background
-          job is queued for sentiment analysis. The system uses AI (custom API,
-          OpenAI, or mock) to analyze the review comment and determine its
-          sentiment.
+          job is queued for sentiment analysis using the AI API configured in
+          <span class="inline-code">AI_API</span>. You can also trigger analysis
+          manually via the POST endpoint below.
         </div>
 
-        <!-- Get Sentiment for Review -->
+        <!-- Analyze Sentiment for Review -->
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
-            <span class="method get">GET</span>
+            <span class="method post">POST</span>
             <span class="endpoint-path">/api/sentiment/review/:reviewId</span>
             <span class="endpoint-desc"
-              >Get sentiment analysis for a review</span
+              >Analyze sentiment for a review</span
             >
             <span class="auth-badge">Auth</span>
           </div>
@@ -1613,12 +1613,8 @@
   "reviewId": "clx1234567890",
   "sentiment": {
     "label": "POSITIVE",
-    "score": 0.95
-  },
-  "job": {
-    "status": "DONE",
-    "attempts": 1,
-    "error": null
+    "score": 0.95,
+    "class": 1
   }
 }</pre
             >
@@ -1646,76 +1642,67 @@
                 <td>Negative sentiment detected</td>
               </tr>
             </table>
-
-            <h4>Job Status Values</h4>
-            <table>
-              <tr>
-                <th>Status</th>
-                <th>Description</th>
-              </tr>
-              <tr>
-                <td>PENDING</td>
-                <td>Job is queued, waiting to be processed</td>
-              </tr>
-              <tr>
-                <td>PROCESSING</td>
-                <td>Currently being analyzed</td>
-              </tr>
-              <tr>
-                <td>DONE</td>
-                <td>Analysis complete</td>
-              </tr>
-              <tr>
-                <td>FAILED</td>
-                <td>Analysis failed after max retries</td>
-              </tr>
-            </table>
           </div>
         </div>
 
-        <!-- Worker Status -->
+        <!-- Organizer Event Sentiment Summary -->
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method get">GET</span>
-            <span class="endpoint-path">/api/sentiment/worker/status</span>
-            <span class="endpoint-desc">Get sentiment worker status</span>
+            <span class="endpoint-path"
+              >/api/sentiment/organizer/events/:eventId/summary</span
+            >
+            <span class="endpoint-desc">Get sentiment summary for an event</span>
             <span class="auth-badge">Auth</span>
           </div>
           <div class="endpoint-body">
             <h4>Success Response (200)</h4>
             <pre>
 {
-  "isRunning": true
+  "eventId": "clxevent123",
+  "totalReviews": 12,
+  "analyzedCount": 10,
+  "positiveCount": 7,
+  "negativeCount": 2,
+  "neutralCount": 1,
+  "averageScore": 0.58
 }</pre
             >
           </div>
         </div>
 
-        <!-- Start Worker -->
+        <!-- Organizer Event Sentiment Reviews -->
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
-            <span class="method post">POST</span>
-            <span class="endpoint-path">/api/sentiment/worker/start</span>
-            <span class="endpoint-desc">Start the sentiment worker</span>
+            <span class="method get">GET</span>
+            <span class="endpoint-path"
+              >/api/sentiment/organizer/events/:eventId/reviews</span
+            >
+            <span class="endpoint-desc"
+              >List sentiment results for an event</span
+            >
             <span class="auth-badge">Auth</span>
           </div>
           <div class="endpoint-body">
             <h4>Success Response (200)</h4>
-            <pre>{ "message": "Worker started" }</pre>
-          </div>
-        </div>
-
-        <!-- Stop Worker -->
-        <div class="endpoint">
-          <div class="endpoint-header" onclick="toggleEndpoint(this)">
-            <span class="method post">POST</span>
-            <span class="endpoint-path">/api/sentiment/worker/stop</span>
-            <span class="endpoint-desc">Stop the sentiment worker</span>
-            <span class="auth-badge">Auth</span>
-          </div>
-          <div class="endpoint-body">
-            <h4>Success Response (200)</h4>
-            <pre>{ "message": "Worker stopped" }</pre>
+            <pre>
+{
+  "eventId": "clxevent123",
+  "sentiments": [
+    {
+      "reviewId": "clxreview1",
+      "label": "POSITIVE",
+      "score": 0.93,
+      "class": 1
+    },
+    {
+      "reviewId": "clxreview2",
+      "label": "NEGATIVE",
+      "score": -0.62,
+      "class": -1
+    }
+  ]
+}</pre>
           </div>
         </div>
       </section>

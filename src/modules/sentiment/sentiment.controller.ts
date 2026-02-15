@@ -1,64 +1,83 @@
 import { Router, Request, Response } from "express";
 import { SentimentService } from "./sentiment.service.js";
-import { SentimentWorker } from "./sentiment.worker.js";
-
+import { OrganizerService } from "../organizer/organizer.service.js";
+import { AuthenticatedRequest } from "../auth/auth.middleware.js";
 export function createSentimentRouter(
   sentimentService: SentimentService,
-  sentimentWorker: SentimentWorker
+  organizerService: OrganizerService,
 ): Router {
   const router = Router();
 
-  // Get sentiment status for a review
-  router.get("/review/:reviewId", async (req: Request, res: Response) => {
+  const resolveOrganizer = async (req: AuthenticatedRequest) => {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+    const organizerProfile = await organizerService.getProfileByUserId(userId);
+    if (!organizerProfile.id) {
+      throw new Error("Organizer profile is required");
+    }
+    return organizerProfile.id;
+  };
+
+  router.post("/review/:reviewId", async (req: Request, res: Response) => {
     try {
       const { reviewId } = req.params as { reviewId: string };
-
-      const sentiment = await sentimentService.getSentimentForReview(reviewId);
-      if (!sentiment) {
-        return res.status(404).json({ error: "Review not found" });
-      }
-
-      const job = await sentimentService.getJobStatus(reviewId);
-
+      const result = await sentimentService.analyzeReview(reviewId);
       res.status(200).json({
-        reviewId,
+        reviewId: result.reviewId,
         sentiment: {
-          label: sentiment.label,
-          score: sentiment.score,
+          label: result.label,
+          score: result.score,
+          class: result.class,
         },
-        job: job
-          ? {
-              status: job.status,
-              attempts: job.attempts,
-              error: job.error,
-            }
-          : null,
       });
     } catch (error) {
-      res.status(500).json({
+      res.status(400).json({
         error: error instanceof Error ? error.message : "Internal error",
       });
     }
   });
 
-  // Get worker status
-  router.get("/worker/status", (req: Request, res: Response) => {
-    res.status(200).json({
-      isRunning: sentimentWorker.isActive(),
-    });
-  });
+  router.get(
+    "/organizer/events/:eventId/summary",
+    async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { eventId } = req.params as { eventId: string };
+        const organizerId = await resolveOrganizer(req);
+        const summary = await sentimentService.getEventSentimentSummary(
+          organizerId,
+          eventId,
+        );
+        res.status(200).json(summary);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Internal error";
+        const status = message === "Unauthorized" ? 401 : 400;
+        res.status(status).json({ error: message });
+      }
+    },
+  );
 
-  // Start worker (admin only in production)
-  router.post("/worker/start", (req: Request, res: Response) => {
-    sentimentWorker.start();
-    res.status(200).json({ message: "Worker started" });
-  });
-
-  // Stop worker (admin only in production)
-  router.post("/worker/stop", (req: Request, res: Response) => {
-    sentimentWorker.stop();
-    res.status(200).json({ message: "Worker stopped" });
-  });
+  router.get(
+    "/organizer/events/:eventId/reviews",
+    async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { eventId } = req.params as { eventId: string };
+        const organizerId = await resolveOrganizer(req);
+        const sentiments = await sentimentService.getEventSentiments(
+          organizerId,
+          eventId,
+        );
+        res.status(200).json({ eventId, sentiments });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Internal error";
+        const status = message === "Unauthorized" ? 401 : 400;
+        res.status(status).json({ error: message });
+      }
+    },
+  );
 
   return router;
 }

@@ -172,7 +172,7 @@ export class CustomAISentimentAnalyzer implements SentimentAnalyzer {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ reviews: [text] }),
     });
 
     if (!response.ok) {
@@ -184,11 +184,26 @@ export class CustomAISentimentAnalyzer implements SentimentAnalyzer {
 
     const data = await response.json();
 
-    // Normalize the result
-    const label = this.normalizeLabel(data.label);
-    const score = this.normalizeScore(data.score);
+    const positive = Array.isArray(data.positive_reviews)
+      ? data.positive_reviews[0]
+      : undefined;
+    const negative = Array.isArray(data.negative_reviews)
+      ? data.negative_reviews[0]
+      : undefined;
 
-    return { label, score };
+    if (positive) {
+      const label = this.normalizeLabel(positive.label);
+      const score = this.normalizeScore(positive.confidence);
+      return { label, score };
+    }
+
+    if (negative) {
+      const label = this.normalizeLabel(negative.label);
+      const score = this.normalizeScore(negative.confidence);
+      return { label, score };
+    }
+
+    return { label: "NEUTRAL", score: 0 };
   }
 
   private normalizeLabel(label: unknown): string {
@@ -237,43 +252,10 @@ export class FallbackSentimentAnalyzer implements SentimentAnalyzer {
 // Factory function to create the appropriate analyzer based on environment
 export function createSentimentAnalyzer(): SentimentAnalyzer {
   const customApiUrl = process.env.AI_API;
-  const openaiApiKey = process.env.OPENAI_API_KEY;
-
-  const analyzers: { name: string; analyzer: SentimentAnalyzer }[] = [];
-
-  // Primary: Custom AI API
-  if (customApiUrl) {
-    console.log(`Custom AI API configured: ${customApiUrl}`);
-    analyzers.push({
-      name: "Custom AI API",
-      analyzer: new CustomAISentimentAnalyzer(customApiUrl),
-    });
+  if (!customApiUrl) {
+    throw new Error("AI_API is not configured in the environment");
   }
 
-  // Secondary: OpenAI API
-  if (openaiApiKey && openaiApiKey !== "your-openai-api-key-here") {
-    console.log("OpenAI API configured as fallback");
-    analyzers.push({
-      name: "OpenAI API",
-      analyzer: new OpenAISentimentAnalyzer(openaiApiKey),
-    });
-  }
-
-  // Tertiary: Mock analyzer
-  console.log("Mock analyzer configured as final fallback");
-  analyzers.push({
-    name: "Mock Analyzer",
-    analyzer: new MockSentimentAnalyzer(),
-  });
-
-  // If only mock is available, return it directly
-  if (analyzers.length === 1) {
-    console.log("Using mock sentiment analyzer (no AI APIs configured)");
-    return analyzers[0].analyzer;
-  }
-
-  console.log(
-    `Sentiment analyzer chain: ${analyzers.map((a) => a.name).join(" → ")}`,
-  );
-  return new FallbackSentimentAnalyzer(analyzers);
+  console.log(`Custom AI API configured: ${customApiUrl}`);
+  return new CustomAISentimentAnalyzer(customApiUrl);
 }

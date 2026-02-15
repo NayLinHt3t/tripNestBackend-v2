@@ -99,6 +99,8 @@ model Review {
   event           Event           @relation(fields: [eventId], references: [id])
   user            User            @relation(fields: [userId], references: [id])
   sentimentJob    SentimentJob?
+
+  sentimentResults SentimentResult[]
 }
 
 model SentimentJob {
@@ -110,6 +112,17 @@ model SentimentJob {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   review    Review    @relation(fields: [reviewId], references: [id])
+}
+
+model SentimentResult{
+  id            String    @id @default(uuid())
+  reviewId       String    @unique
+  class         Int
+  
+  sentimentLabel String
+  sentimentScore Float
+  createdAt      DateTime  @default(now())
+  review         Review    @relation(fields: [reviewId], references: [id])
 }
 
 model ChatRoom {

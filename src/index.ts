@@ -102,7 +102,7 @@ app.use("/api/reviews", authMiddleware, createReviewRouter(reviewService));
 app.use(
   "/api/sentiment",
   authMiddleware,
-  createSentimentRouter(sentimentService, sentimentWorker),
+  createSentimentRouter(sentimentService, organizerService),
 );
 
 // Mount booking routes (protected)
