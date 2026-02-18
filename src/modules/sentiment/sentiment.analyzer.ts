@@ -11,7 +11,7 @@ export class MockSentimentAnalyzer implements SentimentAnalyzer {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     if (!text || text.trim().length === 0) {
-      return { label: "NEUTRAL", score: 0 };
+      return { label: "POSITIVE", score: 0 };
     }
 
     const lowerText = text.toLowerCase();
@@ -52,10 +52,7 @@ export class MockSentimentAnalyzer implements SentimentAnalyzer {
 
     score = Math.max(-1, Math.min(1, score));
 
-    let label: string;
-    if (score > 0.2) label = "POSITIVE";
-    else if (score < -0.2) label = "NEGATIVE";
-    else label = "NEUTRAL";
+    const label = score >= 0 ? "POSITIVE" : "NEGATIVE";
 
     return { label, score };
   }
@@ -75,7 +72,7 @@ export class OpenAISentimentAnalyzer implements SentimentAnalyzer {
 
   async analyze(text: string): Promise<SentimentResult> {
     if (!text || text.trim().length === 0) {
-      return { label: "NEUTRAL", score: 0 };
+      return { label: "POSITIVE", score: 0 };
     }
 
     try {
@@ -139,11 +136,9 @@ Respond ONLY with the JSON object, no additional text.`,
   private normalizeLabel(label: unknown): string {
     if (typeof label === "string") {
       const upper = label.toUpperCase();
-      if (["POSITIVE", "NEGATIVE", "NEUTRAL"].includes(upper)) {
-        return upper;
-      }
+      if (upper === "POSITIVE" || upper === "NEGATIVE") return upper;
     }
-    return "NEUTRAL";
+    return "POSITIVE";
   }
 
   private normalizeScore(score: unknown): number {
@@ -164,9 +159,13 @@ export class CustomAISentimentAnalyzer implements SentimentAnalyzer {
 
   async analyze(text: string): Promise<SentimentResult> {
     if (!text || text.trim().length === 0) {
-      return { label: "NEUTRAL", score: 0 };
+      return { label: "POSITIVE", score: 0, negativeSummary: null };
     }
     try {
+      console.log("🧠 Sentiment: calling custom AI API", {
+        url: this.apiUrl,
+        length: text.length,
+      });
       const response = await fetch(this.apiUrl, {
         method: "POST",
         headers: {
@@ -183,6 +182,7 @@ export class CustomAISentimentAnalyzer implements SentimentAnalyzer {
       }
 
       const data = await response.json();
+      console.log("🧠 Sentiment: custom AI API response", data);
 
       const positive = Array.isArray(data.positive_reviews)
         ? data.positive_reviews[0]
@@ -204,21 +204,19 @@ export class CustomAISentimentAnalyzer implements SentimentAnalyzer {
         return { label, score, negativeSummary };
       }
 
-      return { label: "NEUTRAL", score: 0, negativeSummary };
+      return { label: "POSITIVE", score: 0, negativeSummary };
     } catch (error) {
       console.error("Custom AI API sentiment error:", error);
-      return { label: "NEUTRAL", score: 0, negativeSummary: null };
+      return { label: "POSITIVE", score: 0, negativeSummary: null };
     }
   }
 
   private normalizeLabel(label: unknown): string {
     if (typeof label === "string") {
       const upper = label.toUpperCase();
-      if (["POSITIVE", "NEGATIVE", "NEUTRAL"].includes(upper)) {
-        return upper;
-      }
+      if (upper === "POSITIVE" || upper === "NEGATIVE") return upper;
     }
-    return "NEUTRAL";
+    return "POSITIVE";
   }
 
   private normalizeScore(score: unknown): number {

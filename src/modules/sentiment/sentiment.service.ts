@@ -300,8 +300,7 @@ export class SentimentService {
   private mapLabelToClass(label: string): number {
     const normalized = label.toUpperCase();
     if (normalized === "POSITIVE") return 1;
-    if (normalized === "NEGATIVE") return -1;
-    return 0;
+    return -1;
   }
 
   private async assertOrganizerOwnsEvent(
