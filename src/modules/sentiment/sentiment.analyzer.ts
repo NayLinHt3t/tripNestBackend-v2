@@ -166,45 +166,49 @@ export class CustomAISentimentAnalyzer implements SentimentAnalyzer {
     if (!text || text.trim().length === 0) {
       return { label: "NEUTRAL", score: 0 };
     }
+    try {
+      const response = await fetch(this.apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reviews: [text] }),
+      });
 
-    const response = await fetch(this.apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ reviews: [text] }),
-    });
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(
+          `Custom AI API error: ${response.status} ${response.statusText} - ${errorBody}`,
+        );
+      }
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(
-        `Custom AI API error: ${response.status} ${response.statusText} - ${errorBody}`,
-      );
+      const data = await response.json();
+
+      const positive = Array.isArray(data.positive_reviews)
+        ? data.positive_reviews[0]
+        : undefined;
+      const negative = Array.isArray(data.negative_reviews)
+        ? data.negative_reviews[0]
+        : undefined;
+      const negativeSummary = data.negative_summary || null;
+
+      if (positive) {
+        const label = this.normalizeLabel(positive.label);
+        const score = this.normalizeScore(positive.confidence);
+        return { label, score, negativeSummary };
+      }
+
+      if (negative) {
+        const label = this.normalizeLabel(negative.label);
+        const score = this.normalizeScore(negative.confidence);
+        return { label, score, negativeSummary };
+      }
+
+      return { label: "NEUTRAL", score: 0, negativeSummary };
+    } catch (error) {
+      console.error("Custom AI API sentiment error:", error);
+      return { label: "NEUTRAL", score: 0, negativeSummary: null };
     }
-
-    const data = await response.json();
-
-    const positive = Array.isArray(data.positive_reviews)
-      ? data.positive_reviews[0]
-      : undefined;
-    const negative = Array.isArray(data.negative_reviews)
-      ? data.negative_reviews[0]
-      : undefined;
-    const negativeSummary = data.negative_summary || null;
-
-    if (positive) {
-      const label = this.normalizeLabel(positive.label);
-      const score = this.normalizeScore(positive.confidence);
-      return { label, score, negativeSummary };
-    }
-
-    if (negative) {
-      const label = this.normalizeLabel(negative.label);
-      const score = this.normalizeScore(negative.confidence);
-      return { label, score, negativeSummary };
-    }
-
-    return { label: "NEUTRAL", score: 0, negativeSummary };
   }
 
   private normalizeLabel(label: unknown): string {
