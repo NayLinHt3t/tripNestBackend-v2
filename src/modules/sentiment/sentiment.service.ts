@@ -81,18 +81,21 @@ export class SentimentService {
         class: sentimentClass,
         sentimentLabel: result.label,
         sentimentScore: result.score,
+        negative_summary: result.negativeSummary,
       },
       create: {
         reviewId,
         class: sentimentClass,
         sentimentLabel: result.label,
         sentimentScore: result.score,
+        negative_summary: result.negativeSummary,
       },
       select: {
         reviewId: true,
         class: true,
         sentimentLabel: true,
         sentimentScore: true,
+        negative_summary: true,
       },
     });
 
@@ -242,12 +245,14 @@ export class SentimentService {
           class: sentimentClass,
           sentimentLabel: result.label,
           sentimentScore: result.score,
+          negative_summary: result.negativeSummary,
         },
         create: {
           reviewId: job.reviewId,
           class: sentimentClass,
           sentimentLabel: result.label,
           sentimentScore: result.score,
+          negative_summary: result.negativeSummary,
         },
       });
 

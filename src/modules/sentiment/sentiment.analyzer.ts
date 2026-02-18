@@ -190,20 +190,21 @@ export class CustomAISentimentAnalyzer implements SentimentAnalyzer {
     const negative = Array.isArray(data.negative_reviews)
       ? data.negative_reviews[0]
       : undefined;
+    const negativeSummary = data.negative_summary || null;
 
     if (positive) {
       const label = this.normalizeLabel(positive.label);
       const score = this.normalizeScore(positive.confidence);
-      return { label, score };
+      return { label, score, negativeSummary };
     }
 
     if (negative) {
       const label = this.normalizeLabel(negative.label);
       const score = this.normalizeScore(negative.confidence);
-      return { label, score };
+      return { label, score, negativeSummary };
     }
 
-    return { label: "NEUTRAL", score: 0 };
+    return { label: "NEUTRAL", score: 0, negativeSummary };
   }
 
   private normalizeLabel(label: unknown): string {

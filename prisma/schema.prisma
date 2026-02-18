@@ -118,9 +118,9 @@ model SentimentResult{
   id            String    @id @default(uuid())
   reviewId       String    @unique
   class         Int
-  
   sentimentLabel String
   sentimentScore Float
+  negative_summary String?
   createdAt      DateTime  @default(now())
   review         Review    @relation(fields: [reviewId], references: [id])
 }

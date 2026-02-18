@@ -24,6 +24,7 @@ export enum SentimentStatus {
 export interface SentimentResult {
   label: string;
   score: number;
+  negativeSummary?: string | null;
 }
 
 export interface SentimentAnalysisResult {
