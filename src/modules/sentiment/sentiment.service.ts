@@ -183,6 +183,7 @@ export class SentimentService {
       label: string;
       score: number;
       class: number;
+      negativeSummary: string | null;
     }[]
   > {
     if (!organizerId) {
@@ -201,6 +202,7 @@ export class SentimentService {
         sentimentLabel: true,
         sentimentScore: true,
         class: true,
+        negative_summary: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -210,6 +212,7 @@ export class SentimentService {
       label: item.sentimentLabel,
       score: item.sentimentScore,
       class: item.class,
+      negativeSummary: item.negative_summary,
     }));
   }
 
