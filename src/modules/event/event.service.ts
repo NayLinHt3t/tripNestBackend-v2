@@ -1,4 +1,9 @@
-import { Event, CreateEventDto, UpdateEventDto } from "./event.entity.js";
+import {
+  Event,
+  CreateEventDto,
+  UpdateEventDto,
+  EventsTicketResponse,
+} from "./event.entity.js";
 import { EventRepository } from "./event.repository.js";
 
 export class EventService {
@@ -17,6 +22,10 @@ export class EventService {
 
   async getUpcomingEvents(): Promise<Event[]> {
     return this.eventRepository.findUpcoming();
+  }
+
+  async getEventsWithAvailableTickets(): Promise<EventsTicketResponse> {
+    return this.eventRepository.getEventsWithAvailableTickets();
   }
 
   async searchByLocation(location: string): Promise<Event[]> {

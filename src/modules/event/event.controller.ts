@@ -42,6 +42,18 @@ export function createEventRouter(
     }
   });
 
+  // Get events arranged by available tickets and list fully booked events
+  router.get("/tickets/availability", async (req: Request, res: Response) => {
+    try {
+      const result = await eventService.getEventsWithAvailableTickets();
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Internal error",
+      });
+    }
+  });
+
   // Search events by location, keyword, or mood
   router.get("/search", async (req: Request, res: Response) => {
     try {

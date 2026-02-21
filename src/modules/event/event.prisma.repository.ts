@@ -1,6 +1,12 @@
 import { PrismaClient } from "../database/prisma.js";
 import { Prisma } from "../../../generated/prisma/client.js";
-import { Event, CreateEventDto, UpdateEventDto } from "./event.entity.js";
+import {
+  Event,
+  CreateEventDto,
+  UpdateEventDto,
+  EventWithAvailableTickets,
+  EventsTicketResponse,
+} from "./event.entity.js";
 import { EventRepository } from "./event.repository.js";
 
 type EventWithImages = Prisma.EventGetPayload<{ include: { images: true } }>;
@@ -97,6 +103,58 @@ export class PrismaEventRepository implements EventRepository {
       include: { images: true },
     });
     return events.map(toEvent);
+  }
+
+  async getEventsWithAvailableTickets(): Promise<EventsTicketResponse> {
+    const events = await this.prisma.event.findMany({
+      include: {
+        images: true,
+        bookings: {
+          select: { ticketCounts: true, status: true },
+        },
+      },
+      orderBy: { date: "asc" },
+    });
+
+    const eventsWithTickets: EventWithAvailableTickets[] = events.map(
+      (event) => {
+        // Calculate booked tickets (count all confirmed bookings)
+        const bookedTickets = event.bookings
+          .filter((booking) => booking.status === "CONFIRMED")
+          .reduce((sum, booking) => sum + booking.ticketCounts, 0);
+
+        const availableTickets = event.capacity - bookedTickets;
+        const isFullyBooked = availableTickets <= 0;
+
+        return {
+          ...toEvent(event),
+          bookedTickets,
+          availableTickets,
+          isFullyBooked: isFullyBooked,
+        } as any;
+      },
+    );
+
+    // Separate fully booked and available events
+    const fullyBookedEvents = eventsWithTickets
+      .filter((event) => (event as any).isFullyBooked)
+      .map((event) => {
+        const { bookedTickets, availableTickets, ...eventData } = event as any;
+        return eventData;
+      });
+
+    const eventsSortedByAvailability = eventsWithTickets
+      .filter((event) => !(event as any).isFullyBooked)
+      .sort((a, b) => a.availableTickets - b.availableTickets)
+      .map((event) => {
+        const { isFullyBooked, ...eventData } = event as any;
+        return eventData;
+      });
+
+    return {
+      eventsSortedByAvailability,
+      fullyBookedEvents,
+    };
   }
 
   async create(data: CreateEventDto): Promise<Event> {

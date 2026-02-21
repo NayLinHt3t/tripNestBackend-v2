@@ -1,4 +1,10 @@
-import { Event, CreateEventDto, UpdateEventDto } from "./event.entity.js";
+import {
+  Event,
+  CreateEventDto,
+  UpdateEventDto,
+  EventWithAvailableTickets,
+  EventsTicketResponse,
+} from "./event.entity.js";
 
 export interface EventRepository {
   findById(id: string): Promise<Event | null>;
@@ -10,6 +16,7 @@ export interface EventRepository {
     mood?: string;
   }): Promise<Event[]>;
   findUpcoming(): Promise<Event[]>;
+  getEventsWithAvailableTickets(): Promise<EventsTicketResponse>;
   create(data: CreateEventDto): Promise<Event>;
   update(id: string, data: UpdateEventDto): Promise<Event | null>;
   delete(id: string): Promise<boolean>;

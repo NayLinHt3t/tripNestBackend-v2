@@ -39,3 +39,13 @@ export interface UpdateEventDto {
   price?: number;
   mood?: string | null;
 }
+
+export interface EventWithAvailableTickets extends Event {
+  bookedTickets: number;
+  availableTickets: number;
+}
+
+export interface EventsTicketResponse {
+  eventsSortedByAvailability: EventWithAvailableTickets[];
+  fullyBookedEvents: Event[];
+}

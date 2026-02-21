@@ -790,6 +790,104 @@
           </div>
         </div>
 
+        <!-- Get Events with Available Tickets -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/events/tickets/availability</span>
+            <span class="endpoint-desc">Get events arranged by available tickets and fully booked events</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Description</h4>
+            <p>
+              Returns events arranged by available tickets (from smallest to greatest) and a separate list of fully booked events. Useful for displaying events by availability status.
+            </p>
+
+            <h4>Success Response (200)</h4>
+            <pre>{
+  "eventsSortedByAvailability": [
+    {
+      "id": "clx1234567890",
+      "title": "Jazz Night",
+      "description": "Evening jazz performance",
+      "date": "2026-03-15T19:00:00.000Z",
+      "images": [],
+      "location": "Blue Note, NYC",
+      "capacity": 100,
+      "price": 75.00,
+      "mood": "relaxed",
+      "organizerId": "org123",
+      "createdAt": "2026-01-20T10:00:00.000Z",
+      "bookedTickets": 95,
+      "availableTickets": 5
+    },
+    {
+      "id": "clx9876543210",
+      "title": "Summer Music Festival",
+      "description": "A three-day music festival",
+      "date": "2026-07-15T18:00:00.000Z",
+      "images": [],
+      "location": "Central Park, NYC",
+      "capacity": 5000,
+      "price": 99.99,
+      "mood": "festive",
+      "organizerId": "org456",
+      "createdAt": "2026-01-20T10:00:00.000Z",
+      "bookedTickets": 2000,
+      "availableTickets": 3000
+    }
+  ],
+  "fullyBookedEvents": [
+    {
+      "id": "clx5555555555",
+      "title": "VIP Concert Experience",
+      "description": "Exclusive concert for members",
+      "date": "2026-02-28T20:00:00.000Z",
+      "images": [],
+      "location": "Madison Square Garden, NYC",
+      "capacity": 500,
+      "price": 150.00,
+      "mood": "exclusive",
+      "organizerId": "org789",
+      "createdAt": "2026-01-15T10:00:00.000Z"
+    }
+  ]
+}</pre>
+
+            <h4>Response Fields</h4>
+            <table>
+              <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>eventsSortedByAvailability</td>
+                <td>array</td>
+                <td>Events with available tickets, sorted by available count (ascending)</td>
+              </tr>
+              <tr>
+                <td>eventsSortedByAvailability[].bookedTickets</td>
+                <td>number</td>
+                <td>Number of confirmed bookings for the event</td>
+              </tr>
+              <tr>
+                <td>eventsSortedByAvailability[].availableTickets</td>
+                <td>number</td>
+                <td>Number of available tickets (capacity - bookedTickets)</td>
+              </tr>
+              <tr>
+                <td>fullyBookedEvents</td>
+                <td>array</td>
+                <td>Events that have no available tickets (fully booked)</td>
+              </tr>
+            </table>
+
+            <h4>Examples</h4>
+            <pre>GET /api/events/tickets/availability</pre>
+          </div>
+        </div>
+
         <!-- Search Events -->
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
