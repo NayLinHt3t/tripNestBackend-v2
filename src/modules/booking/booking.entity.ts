@@ -6,7 +6,7 @@ export class Booking {
     public userId: string,
     public eventId: string,
     public ticketCounts: number,
-    public status: Status = Status.PENDING,
+    public status: Status = Status.CONFIRMED,
     public unitPrice?: number,
     public totalPrice?: number,
   ) {}

@@ -74,7 +74,7 @@ export class BookingService {
       userId,
       eventId,
       ticketCounts,
-      Status.PENDING,
+      Status.CONFIRMED,
       undefined,
       undefined,
     );
@@ -85,7 +85,7 @@ export class BookingService {
     const savedBooking = await this.bookingRepository.save(booking);
 
     let chatRoomId: string | undefined;
-    if (this.chatService) {
+    if (this.chatService && savedBooking.status === Status.CONFIRMED) {
       const room = await this.chatService.ensureRoomForEvent(
         savedBooking.eventId,
         savedBooking.userId,
@@ -117,6 +117,10 @@ export class BookingService {
 
     booking.comfirmBooking();
     const saved = await this.bookingRepository.save(booking);
+
+    if (this.chatService && saved.status === Status.CONFIRMED) {
+      await this.chatService.ensureRoomForEvent(saved.eventId, saved.userId);
+    }
 
     return saved;
   }
