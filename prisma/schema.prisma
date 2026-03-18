@@ -30,6 +30,7 @@ model UserProfile {
   gender            String?
   profilePictureUrl String?
   createdAt         DateTime  @default(now())
+  role             Role      @default(USER)
   user              User      @relation(fields: [userId], references: [id])
 }
 
@@ -39,6 +40,9 @@ model OrganizerProfile {
   organizationName String?
   contactNumber    String?
   address          String?
+  status          ApprovalStatus @default(PENDING)
+  rejectionReason String? 
+  rejectionCode   String? 
   createdAt        DateTime @default(now())
   user             User     @relation(fields: [userId], references: [id])
   events           Event[]
@@ -67,6 +71,7 @@ model Event {
   bookings    Booking[]
   images      EventImages[]
   reviews     Review[]
+  status     Status        @default(PENDING)
   chatRoom    ChatRoom?
   organizer   OrganizerProfile? @relation(fields: [organizerId], references: [id])
 }
@@ -155,6 +160,16 @@ model ChatMessage {
   sender     User     @relation(fields: [senderId], references: [id])
 }
 
+model ModerationLog {
+  id          String   @id @default(uuid())
+  entityType  String   // "EVENT" | "ORGANIZER"
+  entityId    String
+  adminId     String
+  action      ApprovalStatus
+  reason      String?
+  createdAt   DateTime @default(now())
+}
+
 enum SentimentStatus {
   PENDING
   ANALYZED
@@ -172,4 +187,16 @@ enum Status {
   PENDING
   CONFIRMED
   CANCELLED
+}
+
+enum Role {
+  USER
+  ORGANIZER
+  ADMIN
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

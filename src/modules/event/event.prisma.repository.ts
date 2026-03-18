@@ -6,6 +6,7 @@ import {
   UpdateEventDto,
   EventWithAvailableTickets,
   EventsTicketResponse,
+  EventStatus,
 } from "./event.entity.js";
 import { EventRepository } from "./event.repository.js";
 
@@ -13,6 +14,7 @@ type EventWithImages = Prisma.EventGetPayload<{ include: { images: true } }>;
 
 const toEvent = (event: EventWithImages): Event => ({
   ...event,
+  status: event.status as EventStatus,
   images: event.images ?? [],
 });
 

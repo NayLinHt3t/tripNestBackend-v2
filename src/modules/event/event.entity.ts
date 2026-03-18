@@ -1,9 +1,16 @@
+export enum EventStatus {
+  PENDING = "PENDING",
+  CONFIRMED = "CONFIRMED",
+  CANCELLED = "CANCELLED",
+}
+
 export interface EventImages {
   id: string;
   eventId: string;
   imageUrl: string;
   createdAt: Date;
 }
+
 export interface Event {
   id: string;
   title: string;
@@ -15,6 +22,8 @@ export interface Event {
   price: number;
   mood?: string | null;
   organizerId?: string | null;
+  status?: EventStatus;
+  isArchived?: boolean;
   createdAt: Date;
 }
 

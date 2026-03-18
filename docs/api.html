@@ -344,6 +344,7 @@
           <li><a href="#profile">Profile</a></li>
           <li><a href="#organizers">Organizers</a></li>
           <li><a href="#chat">Chat</a></li>
+          <li><a href="#admin">Admin</a></li>
         </ul>
       </div>
     </nav>
@@ -2989,6 +2990,705 @@ Content-Type: multipart/form-data</pre>
 
 // 404 Not Found
 { "error": "Chat room not found" }</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="admin">
+        <h2>Admin</h2>
+        <p>
+          Administrative operations for managing organizers, events, reviews, and
+          moderation. All endpoints require ADMIN role authorization.
+        </p>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="path">/api/admin/dashboard/stats</span>
+            <span class="toggle">▶</span>
+          </div>
+          <div class="endpoint-details">
+            <h4>Get Admin Dashboard Statistics</h4>
+            <p>Retrieve comprehensive statistics for the admin dashboard.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="3">No parameters required</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "stats": {
+    "organizersByStatus": {
+      "PENDING": 5,
+      "APPROVED": 42,
+      "REJECTED": 3
+    },
+    "events": {
+      "total": 156,
+      "active": 148,
+      "cancelled": 8
+    },
+    "users": 1250,
+    "reviews": 890,
+    "moderationLogs": 127
+  }
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="path">/api/admin/organizers/all</span>
+            <span class="toggle">▶</span>
+          </div>
+          <div class="endpoint-details">
+            <h4>Get All Organizers with Approval Status</h4>
+            <p>List all organizers filtered by approval status.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>status</td>
+                    <td>query (optional)</td>
+                    <td>Filter by status: PENDING, APPROVED, or REJECTED</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "organizers": [
+    {
+      "id": "org_123",
+      "userId": "user_123",
+      "organizationName": "Adventure Tours Co",
+      "contactPerson": "John Doe",
+      "contactNumber": "1234567890",
+      "address": "123 Main St, City",
+      "status": "APPROVED",
+      "createdAt": "2025-01-15T10:30:00Z",
+      "updatedAt": "2025-01-16T14:20:00Z",
+      "eventCount": 12
+    }
+  ],
+  "total": 45
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="path">/api/admin/organizers/pending</span>
+            <span class="toggle">▶</span>
+          </div>
+          <div class="endpoint-details">
+            <h4>Get Pending Organizer Applications</h4>
+            <p>Retrieve organizers awaiting approval.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="3">No parameters required</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "organizers": [
+    {
+      "id": "org_456",
+      "organizationName": "New Tours Ltd",
+      "contactPerson": "Jane Smith",
+      "contactNumber": "9876543210",
+      "status": "PENDING",
+      "createdAt": "2025-02-18T08:00:00Z"
+    }
+  ],
+  "count": 5
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
+            <span class="path">/api/admin/organizers/:id/approve</span>
+            <span class="toggle">▶</span>
+          </div>
+          <div class="endpoint-details">
+            <h4>Approve Organizer Application</h4>
+            <p>Approve a pending organizer application.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>id</td>
+                    <td>path</td>
+                    <td>Organizer ID</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Request Body</h5>
+            <pre><code class="language-json">{}</code></pre>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "message": "Organizer approved successfully",
+  "organizer": {
+    "id": "org_456",
+    "status": "APPROVED",
+    "updatedAt": "2025-02-18T10:30:00Z"
+  }
+}</code></pre>
+
+            <h5>Response (400 Bad Request)</h5>
+            <pre><code class="language-json">{
+  "error": "Organizer not found or not in PENDING status"
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
+            <span class="path">/api/admin/organizers/:id/reject</span>
+            <span class="toggle">▶</span>
+          </div>
+          <div class="endpoint-details">
+            <h4>Reject Organizer Application</h4>
+            <p>Reject a pending organizer application with reason.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>id</td>
+                    <td>path</td>
+                    <td>Organizer ID</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Request Body</h5>
+            <pre><code class="language-json">{
+  "reason": "Invalid business registration",
+  "code": "INVALID_REGISTRATION"
+}</code></pre>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "message": "Organizer rejected successfully",
+  "organizer": {
+    "id": "org_456",
+    "status": "REJECTED",
+    "rejectionReason": "Invalid business registration",
+    "rejectionCode": "INVALID_REGISTRATION",
+    "updatedAt": "2025-02-18T10:35:00Z"
+  }
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="path">/api/admin/events/top</span>
+            <span class="toggle">▶</span>
+          </div>
+          <div class="endpoint-details">
+            <h4>Get Top Performing Events</h4>
+            <p>Retrieve events with highest bookings and ratings.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>limit</td>
+                    <td>query (optional)</td>
+                    <td>Number of events to return (default: 10)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "events": [
+    {
+      "id": "evt_123",
+      "title": "Mountain Expedition 2025",
+      "bookingCount": 45,
+      "averageRating": 4.8,
+      "totalRevenue": 22500,
+      "organizer": "Adventure Tours Co"
+    }
+  ],
+  "count": 10
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
+            <span class="path">/api/admin/events/:id/cancel</span>
+            <span class="toggle">▶</span>
+          </div>
+          <div class="endpoint-details">
+            <h4>Cancel Event</h4>
+            <p>Cancel an active event.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>id</td>
+                    <td>path</td>
+                    <td>Event ID</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Request Body</h5>
+            <pre><code class="language-json">{}</code></pre>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "message": "Event cancelled successfully",
+  "event": {
+    "id": "evt_123",
+    "status": "CANCELLED",
+    "updatedAt": "2025-02-18T11:00:00Z"
+  }
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method delete">DELETE</span>
+            <span class="path">/api/admin/events/:id</span>
+            <span class="toggle">▶</span>
+          </div>
+          <div class="endpoint-details">
+            <h4>Delete Event</h4>
+            <p>Permanently delete an event. Cannot delete events with confirmed bookings.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>id</td>
+                    <td>path</td>
+                    <td>Event ID</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "message": "Event deleted successfully",
+  "id": "evt_123"
+}</code></pre>
+
+            <h5>Response (400 Bad Request)</h5>
+            <pre><code class="language-json">{
+  "error": "Cannot delete event with confirmed bookings"
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="path">/api/admin/reviews/suspicious</span>
+            <span class="toggle">▶</span>
+          </div>
+          <div class="endpoint-details">
+            <h4>Get Suspicious Reviews</h4>
+            <p>
+              Retrieve reviews that may require moderation (ratings ≤ 1 or failed
+              sentiment analysis).
+            </p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="3">No parameters required</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "reviews": [
+    {
+      "id": "rev_123",
+      "eventId": "evt_123",
+      "userId": "user_456",
+      "rating": 1,
+      "content": "Terrible experience",
+      "sentiment": {
+        "score": -0.95,
+        "label": "NEGATIVE"
+      },
+      "createdAt": "2025-02-18T09:00:00Z"
+    }
+  ],
+  "count": 3
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
+            <span class="path">/api/admin/reviews/:id/flag</span>
+            <span class="toggle">▶</span>
+          </div>
+          <div class="endpoint-details">
+            <h4>Flag Review for Moderation</h4>
+            <p>Mark a review as flagged for manual review.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>id</td>
+                    <td>path</td>
+                    <td>Review ID</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Request Body</h5>
+            <pre><code class="language-json">{
+  "reason": "Potentially inappropriate language"
+}</code></pre>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "message": "Review flagged successfully",
+  "review": {
+    "id": "rev_123",
+    "flagged": true,
+    "flagReason": "Potentially inappropriate language"
+  }
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="path">/api/admin/logs/moderation</span>
+            <span class="toggle">▶</span>
+          </div>
+          <div class="endpoint-details">
+            <h4>Get Moderation Logs</h4>
+            <p>Retrieve audit trail of admin actions.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>page</td>
+                    <td>query (optional)</td>
+                    <td>Page number (default: 1)</td>
+                  </tr>
+                  <tr>
+                    <td>limit</td>
+                    <td>query (optional)</td>
+                    <td>Results per page (default: 20)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "logs": [
+    {
+      "id": "log_123",
+      "adminId": "admin_user_123",
+      "action": "APPROVE_ORGANIZER",
+      "targetId": "org_456",
+      "targetType": "ORGANIZER",
+      "details": {
+        "organizationName": "Adventure Tours Co",
+        "reason": "Verified registration and credentials"
+      },
+      "timestamp": "2025-02-18T10:30:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 127
+  }
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="path">/api/admin/stats/organizers</span>
+            <span class="toggle">▶</span>
+          </div>
+          <div class="endpoint-details">
+            <h4>Get Organizer Statistics</h4>
+            <p>Retrieve statistics about organizers by status.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="3">No parameters required</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "stats": {
+    "statuses": {
+      "PENDING": 5,
+      "APPROVED": 42,
+      "REJECTED": 3
+    },
+    "activeEvents": 98,
+    "totalOrganizers": 50
+  }
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="path">/api/admin/stats/events</span>
+            <span class="toggle">▶</span>
+          </div>
+          <div class="endpoint-details">
+            <h4>Get Event Statistics</h4>
+            <p>Retrieve statistics about events.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="3">No parameters required</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "stats": {
+    "total": 156,
+    "active": 148,
+    "cancelled": 8
+  }
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="path">/api/admin/stats/bookings</span>
+            <span class="toggle">▶</span>
+          </div>
+          <div class="endpoint-details">
+            <h4>Get Booking Statistics</h4>
+            <p>Retrieve statistics about bookings by status.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="3">No parameters required</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "stats": {
+    "total": 542,
+    "confirmed": 485,
+    "cancelled": 57
+  }
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="path">/api/admin/organizers/top</span>
+            <span class="toggle">▶</span>
+          </div>
+          <div class="endpoint-details">
+            <h4>Get Top Organizers</h4>
+            <p>Retrieve top performing organizers by event count and ratings.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>limit</td>
+                    <td>query (optional)</td>
+                    <td>Number of organizers to return (default: 10)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "organizers": [
+    {
+      "id": "org_123",
+      "organizationName": "Adventure Tours Co",
+      "eventCount": 45,
+      "averageRating": 4.7,
+      "totalBookings": 285
+    }
+  ],
+  "count": 10
+}</code></pre>
           </div>
         </div>
       </section>
