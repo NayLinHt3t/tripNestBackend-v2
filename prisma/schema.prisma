@@ -12,6 +12,7 @@ model User {
   email            String            @unique
   name             String
   password         String
+  role             UserRole[]    
   createdAt        DateTime          @default(now())
   bookings         Booking[]
   organizerProfile OrganizerProfile?
@@ -21,6 +22,21 @@ model User {
   chatMessages     ChatMessage[]
 }
 
+model Role {
+  id    String @id @default(uuid())
+  name  RoleType @unique
+
+  users UserRole[]
+}
+model UserRole {
+  userId String
+  roleId String
+
+  user   User @relation(fields: [userId], references: [id])
+  role   Role @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+}
 model UserProfile {
   id                String    @id @default(uuid())
   userId            String    @unique
@@ -30,7 +46,6 @@ model UserProfile {
   gender            String?
   profilePictureUrl String?
   createdAt         DateTime  @default(now())
-  role             Role      @default(USER)
   user              User      @relation(fields: [userId], references: [id])
 }
 
@@ -43,6 +58,8 @@ model OrganizerProfile {
   status          ApprovalStatus @default(PENDING)
   rejectionReason String? 
   rejectionCode   String? 
+  approvedBy       String?         
+  approvedAt       DateTime?        
   createdAt        DateTime @default(now())
   user             User     @relation(fields: [userId], references: [id])
   events           Event[]
@@ -67,6 +84,8 @@ model Event {
   price       Float
   mood        String?
   organizerId String?
+  approvedBy  String?       
+  approvedAt  DateTime?
   createdAt   DateTime      @default(now())
   bookings    Booking[]
   images      EventImages[]
@@ -189,7 +208,7 @@ enum Status {
   CANCELLED
 }
 
-enum Role {
+enum RoleType {
   USER
   ORGANIZER
   ADMIN

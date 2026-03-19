@@ -1,12 +1,11 @@
 import { Router, Response } from "express";
 import { AdminService } from "./admin.service.js";
 import { ApprovalStatus } from "../organizer/organizer.entity.js";
-import { AuthenticatedRequest } from "../auth/auth.middleware.js";
+import { AuthenticatedRequest, hasRole } from "../auth/auth.middleware.js";
 
 // Helper to check admin access
 async function requireAdmin(req: AuthenticatedRequest): Promise<boolean> {
-  const userRole = (req.user as any)?.role;
-  return userRole === "ADMIN";
+  return hasRole(req, ["ADMIN"]);
 }
 
 export function createAdminRouter(adminService: AdminService): Router {
@@ -215,6 +214,35 @@ export function createAdminRouter(adminService: AdminService): Router {
         const topEvents = await adminService.getTopEvents(Number(limit));
         res.status(200).json(topEvents);
       } catch (error) {
+        res.status(400).json({
+          error: error instanceof Error ? error.message : "Internal error",
+        });
+      }
+    },
+  );
+
+  // Cancel event
+  router.post(
+    "/events/:id/approve",
+    async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { id } = req.params as { id: string };
+        const adminId = req.user?.userId;
+
+        if (!adminId) {
+          return res.status(401).json({ error: "Admin ID not found" });
+        }
+
+        const event = await adminService.approveEvent(id, adminId);
+
+        res.status(200).json({
+          message: "Event approved successfully",
+          event,
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("not found")) {
+          return res.status(404).json({ error: error.message });
+        }
         res.status(400).json({
           error: error instanceof Error ? error.message : "Internal error",
         });

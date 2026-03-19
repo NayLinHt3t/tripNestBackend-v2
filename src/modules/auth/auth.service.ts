@@ -7,6 +7,7 @@ import { sendPasswordResetEmail } from "../utils/email.js";
 export interface AuthPayload {
   userId: string;
   email: string;
+  roles: string[];
 }
 
 interface ResetToken {
@@ -29,7 +30,7 @@ export class AuthService {
     email: string,
     password: string,
     name: string,
-  ): Promise<{ userId: string; email: string }> {
+  ): Promise<{ userId: string; email: string; roles: string[] }> {
     if (!this.userRepository) {
       throw new Error("User repository not configured");
     }
@@ -46,13 +47,18 @@ export class AuthService {
     // Create user
     const user = await this.userRepository.create(email, hashedPassword, name);
 
-    return { userId: user.id, email: user.email };
+    return { userId: user.id, email: user.email, roles: user.roles };
   }
 
   async login(
     email: string,
     password: string,
-  ): Promise<{ token: string; userId: string; email: string }> {
+  ): Promise<{
+    token: string;
+    userId: string;
+    email: string;
+    roles: string[];
+  }> {
     if (!this.userRepository) {
       throw new Error("User repository not configured");
     }
@@ -67,8 +73,8 @@ export class AuthService {
       throw new Error("Invalid email or password");
     }
 
-    const token = this.generateToken(user.id, user.email);
-    return { token, userId: user.id, email: user.email };
+    const token = this.generateToken(user.id, user.email, user.roles);
+    return { token, userId: user.id, email: user.email, roles: user.roles };
   }
 
   logout(token: string): void {
@@ -79,8 +85,8 @@ export class AuthService {
     return tokenBlacklist.has(token);
   }
 
-  generateToken(userId: string, email: string): string {
-    return jwt.sign({ userId, email }, this.jwtSecret, {
+  generateToken(userId: string, email: string, roles: string[]): string {
+    return jwt.sign({ userId, email, roles }, this.jwtSecret, {
       expiresIn: "7d",
     });
   }
@@ -90,8 +96,15 @@ export class AuthService {
       if (this.isTokenBlacklisted(token)) {
         return null;
       }
-      const decoded = jwt.verify(token, this.jwtSecret) as AuthPayload;
-      return decoded;
+      const decoded = jwt.verify(token, this.jwtSecret) as Partial<AuthPayload>;
+      if (!decoded.userId || !decoded.email) {
+        return null;
+      }
+      return {
+        userId: decoded.userId,
+        email: decoded.email,
+        roles: Array.isArray(decoded.roles) ? decoded.roles : [],
+      };
     } catch (error) {
       return null;
     }

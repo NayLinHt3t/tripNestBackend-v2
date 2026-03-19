@@ -2,7 +2,7 @@ import { Router, Request, Response, RequestHandler } from "express";
 import multer from "multer";
 import { EventService } from "./event.service.js";
 import { uploadImageBuffer } from "../utils/cloudinary.js";
-import { AuthenticatedRequest } from "../auth/auth.middleware.js";
+import { AuthenticatedRequest, hasRole } from "../auth/auth.middleware.js";
 import { OrganizerService } from "../organizer/organizer.service.js";
 import { ChatService } from "../chatting/chatting.service.js";
 
@@ -199,7 +199,7 @@ export function createEventRouter(
     try {
       const { id } = req.params as { id: string };
       const userId = req.user?.userId;
-      const userRole = (req.user as any)?.role;
+      const isAdmin = hasRole(req, ["ADMIN"]);
 
       if (!userId) {
         return res.status(401).json({ error: "Unauthorized" });
@@ -220,7 +220,7 @@ export function createEventRouter(
         isOwner = organizer?.userId === userId;
       }
 
-      if (!isOwner && userRole !== "ADMIN") {
+      if (!isOwner && !isAdmin) {
         return res.status(403).json({
           error: "You can only update your own events",
         });
@@ -261,7 +261,7 @@ export function createEventRouter(
     try {
       const { id } = req.params as { id: string };
       const userId = req.user?.userId;
-      const userRole = (req.user as any)?.role;
+      const isAdmin = hasRole(req, ["ADMIN"]);
 
       if (!userId) {
         return res.status(401).json({ error: "Unauthorized" });
@@ -282,7 +282,7 @@ export function createEventRouter(
         isOwner = organizer?.userId === userId;
       }
 
-      if (!isOwner && userRole !== "ADMIN") {
+      if (!isOwner && !isAdmin) {
         return res.status(403).json({
           error: "You can only delete your own events",
         });

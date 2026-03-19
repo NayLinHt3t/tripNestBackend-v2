@@ -118,13 +118,15 @@ export class PrismaOrganizerRepository implements OrganizerRepository {
     );
   }
 
-  async approve(id: string): Promise<OrganizerProfile | null> {
+  async approve(id: string, adminId: string): Promise<OrganizerProfile | null> {
     const updatedProfile = await this.prisma.organizerProfile.update({
       where: { id },
       data: {
         status: "APPROVED",
         rejectionReason: null,
         rejectionCode: null,
+        approvedBy: adminId,
+        approvedAt: new Date(),
       },
     });
 
@@ -144,6 +146,7 @@ export class PrismaOrganizerRepository implements OrganizerRepository {
   async reject(
     id: string,
     reason: string,
+    adminId: string,
     code?: string,
   ): Promise<OrganizerProfile | null> {
     const updatedProfile = await this.prisma.organizerProfile.update({
@@ -152,6 +155,8 @@ export class PrismaOrganizerRepository implements OrganizerRepository {
         status: "REJECTED",
         rejectionReason: reason,
         rejectionCode: code || null,
+        approvedBy: adminId,
+        approvedAt: new Date(),
       },
     });
 

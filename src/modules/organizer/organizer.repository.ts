@@ -10,10 +10,11 @@ export interface OrganizerRepository {
     id: string,
     profile: Partial<OrganizerProfile>,
   ): Promise<OrganizerProfile | null>;
-  approve(id: string): Promise<OrganizerProfile | null>;
+  approve(id: string, adminId: string): Promise<OrganizerProfile | null>;
   reject(
     id: string,
     reason: string,
+    adminId: string,
     code?: string,
   ): Promise<OrganizerProfile | null>;
   delete(id: string): Promise<boolean>;

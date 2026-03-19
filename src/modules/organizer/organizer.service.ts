@@ -12,6 +12,51 @@ export class OrganizerService {
     private prisma: PrismaClient,
   ) {}
 
+  private async ensureUserRole(
+    userId: string,
+    roleName: "USER" | "ORGANIZER" | "ADMIN",
+  ) {
+    const role = await this.prisma.role.upsert({
+      where: { name: roleName },
+      update: {},
+      create: { name: roleName },
+    });
+
+    await this.prisma.userRole.upsert({
+      where: {
+        userId_roleId: {
+          userId,
+          roleId: role.id,
+        },
+      },
+      update: {},
+      create: {
+        userId,
+        roleId: role.id,
+      },
+    });
+      try {
+        await this.prisma.$executeRaw`
+          INSERT INTO "Role" (id, name)
+          VALUES (gen_random_uuid()::text, ${roleName})
+          ON CONFLICT (name) DO NOTHING
+        `;
+
+        await this.prisma.$executeRaw`
+          INSERT INTO "UserRole" ("userId", "roleId")
+          SELECT ${userId}, r.id
+          FROM "Role" r
+          WHERE r.name = ${roleName}
+          ON CONFLICT ("userId", "roleId") DO NOTHING
+        `;
+      } catch {
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { role: roleName },
+        });
+      }
+  }
+
   async getProfileById(id: string): Promise<OrganizerProfile | null> {
     if (!id) {
       throw new Error("Profile ID is required");
@@ -143,9 +188,15 @@ export class OrganizerService {
   /**
    * Approve an organizer profile (admin function)
    */
-  async approveProfile(id: string): Promise<OrganizerProfile | null> {
+  async approveProfile(
+    id: string,
+    adminId: string,
+  ): Promise<OrganizerProfile | null> {
     if (!id) {
       throw new Error("Profile ID is required");
+    }
+    if (!adminId) {
+      throw new Error("Admin ID is required");
     }
 
     const profile = await this.organizerRepository.findById(id);
@@ -159,7 +210,9 @@ export class OrganizerService {
       );
     }
 
-    return this.organizerRepository.approve(id);
+    const approvedProfile = await this.organizerRepository.approve(id, adminId);
+    await this.ensureUserRole(profile.userId, "ORGANIZER");
+    return approvedProfile;
   }
 
   /**
@@ -168,8 +221,13 @@ export class OrganizerService {
   async rejectProfile(
     id: string,
     reason: string,
+    adminId: string,
     code?: string,
   ): Promise<OrganizerProfile | null> {
+    if (!adminId) {
+      throw new Error("Admin ID is required");
+    }
+
     if (!id) {
       throw new Error("Profile ID is required");
     }
@@ -189,7 +247,7 @@ export class OrganizerService {
       );
     }
 
-    return this.organizerRepository.reject(id, reason.trim(), code);
+    return this.organizerRepository.reject(id, reason.trim(), adminId, code);
   }
 
   /**

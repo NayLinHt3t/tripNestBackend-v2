@@ -246,8 +246,74 @@ export class EventService {
       throw new Error("Event is already cancelled");
     }
 
-    // In a real app, you'd also want to notify/refund users
-    return this.eventRepository.update(id, {});
+    if (!this.prisma) {
+      throw new Error("Prisma client not available");
+    }
+
+    const cancelled = await this.prisma.event.update({
+      where: { id },
+      data: { status: "CANCELLED" },
+      include: { images: true },
+    });
+
+    return {
+      ...cancelled,
+      status: cancelled.status as EventStatus,
+      images: cancelled.images ?? [],
+    };
+  }
+
+  async approveEvent(id: string, adminId: string): Promise<Event> {
+    if (!id) {
+      throw new Error("Event ID is required");
+    }
+    if (!adminId) {
+      throw new Error("Admin ID is required");
+    }
+    if (!this.prisma) {
+      throw new Error("Prisma client not available");
+    }
+
+    const event = await this.prisma.event.findUnique({
+      where: { id },
+      include: { images: true },
+    });
+
+    if (!event) {
+      throw new Error("Event not found");
+    }
+
+    if (event.status !== "PENDING") {
+      throw new Error(`Cannot approve event with status ${event.status}`);
+    }
+
+    if (!event.organizerId) {
+      throw new Error("Event must belong to an organizer");
+    }
+
+    const organizer = await this.prisma.organizerProfile.findUnique({
+      where: { id: event.organizerId },
+    });
+
+    if (!organizer || organizer.status !== "APPROVED") {
+      throw new Error("Only approved organizers can have approved events");
+    }
+
+    const approved = await this.prisma.event.update({
+      where: { id },
+      data: {
+        status: "CONFIRMED",
+        approvedBy: adminId,
+        approvedAt: new Date(),
+      },
+      include: { images: true },
+    });
+
+    return {
+      ...approved,
+      status: approved.status as EventStatus,
+      images: approved.images ?? [],
+    };
   }
 
   /**

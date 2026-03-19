@@ -51,7 +51,10 @@ export class AdminService {
    * Approve organizer and log action
    */
   async approveOrganizer(organizerId: string, adminId: string): Promise<any> {
-    const approved = await this.organizerService.approveProfile(organizerId);
+    const approved = await this.organizerService.approveProfile(
+      organizerId,
+      adminId,
+    );
 
     // Log moderation action
     await this.logModerationAction({
@@ -77,6 +80,7 @@ export class AdminService {
     const rejected = await this.organizerService.rejectProfile(
       organizerId,
       reason,
+      adminId,
       code,
     );
 
@@ -90,6 +94,23 @@ export class AdminService {
     });
 
     return rejected;
+  }
+
+  /**
+   * Approve an event (admin action)
+   */
+  async approveEvent(eventId: string, adminId: string): Promise<any> {
+    const approved = await this.eventService.approveEvent(eventId, adminId);
+
+    await this.logModerationAction({
+      entityType: "EVENT",
+      entityId: eventId,
+      action: AdminAction.APPROVE_EVENT,
+      reason: "Event approved by admin",
+      details: { approverAdminId: adminId },
+    });
+
+    return approved;
   }
 
   /**

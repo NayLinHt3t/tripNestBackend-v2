@@ -5,6 +5,30 @@ export interface AuthenticatedRequest extends Request {
   user?: AuthPayload;
 }
 
+export function hasRole(
+  req: AuthenticatedRequest,
+  allowedRoles: string[],
+): boolean {
+  const userRoles = req.user?.roles ?? [];
+  return allowedRoles.some((role) => userRoles.includes(role));
+}
+
+export function requireRoles(...allowedRoles: string[]) {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (!hasRole(req, allowedRoles)) {
+      return res.status(403).json({
+        error: `Forbidden. Required role: ${allowedRoles.join(" or ")}`,
+      });
+    }
+
+    next();
+  };
+}
+
 export function createAuthMiddleware(authService: AuthService) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {

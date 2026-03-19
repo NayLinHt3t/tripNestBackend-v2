@@ -33,6 +33,8 @@ import { PrismaChatRepository } from "./modules/chatting/chatting.prisma.reposit
 import { createDashboardRouter } from "./modules/dashboard/dashboard.controller.js";
 import { DashboardService } from "./modules/dashboard/dashboard.service.js";
 import { PrismaDashboardRepository } from "./modules/dashboard/dashboard.prisma.repository.js";
+import { createAdminRouter } from "./modules/admin/admin.controller.js";
+import { AdminService } from "./modules/admin/admin.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,7 +52,7 @@ const userRepository = new PrismaUserRepository(prisma);
 const authService = new AuthService(userRepository);
 const authMiddleware = createAuthMiddleware(authService);
 const eventRepository = new PrismaEventRepository(prisma);
-const eventService = new EventService(eventRepository);
+const eventService = new EventService(eventRepository, prisma);
 const reviewRepository = new PrismaReviewRepository(prisma);
 const reviewService = new ReviewService(reviewRepository);
 const profileRepository = new PrismaProfileRepository(prisma);
@@ -59,6 +61,7 @@ const organizerRepository = new PrismaOrganizerRepository(prisma);
 const organizerService = new OrganizerService(organizerRepository, prisma);
 const dashboardRepository = new PrismaDashboardRepository(prisma);
 const dashboardService = new DashboardService(dashboardRepository);
+const adminService = new AdminService(prisma, organizerService, eventService);
 
 // Initialize sentiment module
 const sentimentJobRepository = new PrismaSentimentJobRepository(prisma);
@@ -125,6 +128,9 @@ app.use(
   authMiddleware,
   createDashboardRouter(dashboardService, organizerService),
 );
+
+// Mount admin routes (protected)
+app.use("/api/admin", authMiddleware, createAdminRouter(adminService));
 
 // Start sentiment worker
 sentimentWorker.start();

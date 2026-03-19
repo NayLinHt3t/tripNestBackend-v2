@@ -20,12 +20,17 @@ export function createAuthRouter(
       }
 
       const user = await authService.register(email, password, name);
-      const token = authService.generateToken(user.userId, user.email);
+      const token = authService.generateToken(
+        user.userId,
+        user.email,
+        user.roles,
+      );
 
       res.status(201).json({
         token,
         userId: user.userId,
         email: user.email,
+        roles: user.roles,
         expiresIn: "7d",
         message: "Registration successful",
       });
@@ -56,6 +61,7 @@ export function createAuthRouter(
         token: result.token,
         userId: result.userId,
         email: result.email,
+        roles: result.roles,
         expiresIn: "7d",
         message: "Login successful",
       });

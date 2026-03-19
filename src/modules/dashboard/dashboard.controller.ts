@@ -27,7 +27,7 @@ export function createDashboardRouter(
       throw new Error("Unauthorized");
     }
     const organizerProfile = await organizerService.getProfileByUserId(userId);
-    if (!organizerProfile.id) {
+    if (!organizerProfile || !organizerProfile.id) {
       throw new Error("Organizer profile is required");
     }
     return {

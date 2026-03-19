@@ -1,6 +1,6 @@
 import { Router, Response } from "express";
 import { OrganizerService } from "./organizer.service.js";
-import { AuthenticatedRequest } from "../auth/auth.middleware.js";
+import { AuthenticatedRequest, hasRole } from "../auth/auth.middleware.js";
 import { OrganizerProfile, ApprovalStatus } from "./organizer.entity.js";
 
 // Helper function to convert OrganizerProfile entity to response DTO
@@ -21,8 +21,7 @@ function profileToResponse(profile: OrganizerProfile | null) {
 
 // Helper to check if user is admin
 async function isAdmin(req: AuthenticatedRequest): Promise<boolean> {
-  const userRole = (req.user as any)?.role;
-  return userRole === "ADMIN";
+  return hasRole(req, ["ADMIN"]);
 }
 
 export function createOrganizerRouter(
@@ -221,7 +220,11 @@ export function createOrganizerRouter(
         }
 
         const { id } = req.params as { id: string };
-        const profile = await organizerService.approveProfile(id);
+        const adminId = req.user?.userId;
+        if (!adminId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+        const profile = await organizerService.approveProfile(id, adminId);
 
         if (!profile) {
           return res.status(404).json({ error: "Profile not found" });
@@ -255,8 +258,17 @@ export function createOrganizerRouter(
 
         const { id } = req.params as { id: string };
         const { reason, code } = req.body;
+        const adminId = req.user?.userId;
+        if (!adminId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
 
-        const profile = await organizerService.rejectProfile(id, reason, code);
+        const profile = await organizerService.rejectProfile(
+          id,
+          reason,
+          adminId,
+          code,
+        );
 
         if (!profile) {
           return res.status(404).json({ error: "Profile not found" });
