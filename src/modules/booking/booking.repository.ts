@@ -3,6 +3,7 @@ import { Booking } from "./booking.entity.js";
 export interface EventInfo {
   id: string;
   price: number;
+  status: string;
 }
 
 export interface BookingRepository {

@@ -136,6 +136,25 @@ export function createAdminRouter(adminService: AdminService): Router {
   );
 
   // Approve organizer
+  router.get(
+    "/organizers/:id/detail",
+    async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { id } = req.params as { id: string };
+        const detail = await adminService.getOrganizerDetail(id);
+        res.status(200).json(detail);
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("not found")) {
+          return res.status(404).json({ error: error.message });
+        }
+        res.status(400).json({
+          error: error instanceof Error ? error.message : "Internal error",
+        });
+      }
+    },
+  );
+
+  // Approve organizer
   router.post(
     "/organizers/:id/approve",
     async (req: AuthenticatedRequest, res: Response) => {
@@ -222,6 +241,25 @@ export function createAdminRouter(adminService: AdminService): Router {
   );
 
   // Cancel event
+  router.get(
+    "/events/:id/detail",
+    async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const { id } = req.params as { id: string };
+        const detail = await adminService.getEventDetail(id);
+        res.status(200).json(detail);
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("not found")) {
+          return res.status(404).json({ error: error.message });
+        }
+        res.status(400).json({
+          error: error instanceof Error ? error.message : "Internal error",
+        });
+      }
+    },
+  );
+
+  // Approve event
   router.post(
     "/events/:id/approve",
     async (req: AuthenticatedRequest, res: Response) => {

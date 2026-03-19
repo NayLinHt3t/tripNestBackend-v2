@@ -272,6 +272,158 @@ export class AdminService {
   }
 
   /**
+   * Get organizer detail for approval decisions
+   */
+  async getOrganizerDetail(organizerId: string): Promise<any> {
+    if (!organizerId) {
+      throw new Error("Organizer ID is required");
+    }
+
+    const organizer = await this.prisma.organizerProfile.findUnique({
+      where: { id: organizerId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true,
+            role: {
+              include: {
+                role: {
+                  select: { name: true },
+                },
+              },
+            },
+          },
+        },
+        events: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            date: true,
+            createdAt: true,
+            _count: {
+              select: {
+                bookings: true,
+                reviews: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    if (!organizer) {
+      throw new Error("Organizer not found");
+    }
+
+    const moderationLogs = await this.prisma.moderationLog.findMany({
+      where: {
+        entityType: "ORGANIZER",
+        entityId: organizerId,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+
+    return {
+      ...organizer,
+      moderationLogs,
+      eventCount: organizer.events.length,
+      userRoles: organizer.user.role.map((item) => item.role.name),
+    };
+  }
+
+  /**
+   * Get event detail for approval decisions
+   */
+  async getEventDetail(eventId: string): Promise<any> {
+    if (!eventId) {
+      throw new Error("Event ID is required");
+    }
+
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      include: {
+        images: true,
+        organizer: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        bookings: {
+          select: {
+            id: true,
+            status: true,
+            ticketCounts: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
+        reviews: {
+          select: {
+            id: true,
+            rating: true,
+            sentimentStatus: true,
+            sentimentLabel: true,
+            sentimentScore: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    if (!event) {
+      throw new Error("Event not found");
+    }
+
+    const moderationLogs = await this.prisma.moderationLog.findMany({
+      where: {
+        entityType: "EVENT",
+        entityId: eventId,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+
+    const confirmedBookings = event.bookings.filter(
+      (booking) => booking.status === "CONFIRMED",
+    );
+    const pendingBookings = event.bookings.filter(
+      (booking) => booking.status === "PENDING",
+    );
+    const cancelledBookings = event.bookings.filter(
+      (booking) => booking.status === "CANCELLED",
+    );
+
+    return {
+      ...event,
+      moderationLogs,
+      metrics: {
+        totalBookings: event.bookings.length,
+        confirmedBookings: confirmedBookings.length,
+        pendingBookings: pendingBookings.length,
+        cancelledBookings: cancelledBookings.length,
+        totalTicketsSold: confirmedBookings.reduce(
+          (sum, booking) => sum + booking.ticketCounts,
+          0,
+        ),
+        reviewCount: event.reviews.length,
+      },
+    };
+  }
+
+  /**
    * Get platform overview data
    */
   async getOrganizerStats(): Promise<any> {

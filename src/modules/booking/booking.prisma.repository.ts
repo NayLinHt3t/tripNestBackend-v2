@@ -43,7 +43,7 @@ export class PrismaBookingRepository implements BookingRepository {
   async findEventById(eventId: string): Promise<EventInfo | null> {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
-      select: { id: true, price: true },
+      select: { id: true, price: true, status: true },
     });
     return event;
   }

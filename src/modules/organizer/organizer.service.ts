@@ -35,26 +35,6 @@ export class OrganizerService {
         roleId: role.id,
       },
     });
-      try {
-        await this.prisma.$executeRaw`
-          INSERT INTO "Role" (id, name)
-          VALUES (gen_random_uuid()::text, ${roleName})
-          ON CONFLICT (name) DO NOTHING
-        `;
-
-        await this.prisma.$executeRaw`
-          INSERT INTO "UserRole" ("userId", "roleId")
-          SELECT ${userId}, r.id
-          FROM "Role" r
-          WHERE r.name = ${roleName}
-          ON CONFLICT ("userId", "roleId") DO NOTHING
-        `;
-      } catch {
-        await this.prisma.user.update({
-          where: { id: userId },
-          data: { role: roleName },
-        });
-      }
   }
 
   async getProfileById(id: string): Promise<OrganizerProfile | null> {

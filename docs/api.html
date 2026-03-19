@@ -343,8 +343,8 @@
           <li><a href="#sentiment">Sentiment</a></li>
           <li><a href="#profile">Profile</a></li>
           <li><a href="#organizers">Organizers</a></li>
-          <li><a href="#chat">Chat</a></li>
           <li><a href="#admin">Admin</a></li>
+          <li><a href="#chat">Chat</a></li>
         </ul>
       </div>
     </nav>
@@ -3004,10 +3004,10 @@ Content-Type: multipart/form-data</pre>
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method get">GET</span>
-            <span class="path">/api/admin/dashboard/stats</span>
-            <span class="toggle">▶</span>
+            <span class="endpoint-path">/api/admin/dashboard/stats</span>
+            <span class="endpoint-desc">Get dashboard statistics</span>
           </div>
-          <div class="endpoint-details">
+          <div class="endpoint-body">
             <h4>Get Admin Dashboard Statistics</h4>
             <p>Retrieve comprehensive statistics for the admin dashboard.</p>
 
@@ -3052,10 +3052,10 @@ Content-Type: multipart/form-data</pre>
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method get">GET</span>
-            <span class="path">/api/admin/organizers/all</span>
-            <span class="toggle">▶</span>
+            <span class="endpoint-path">/api/admin/organizers/all</span>
+            <span class="endpoint-desc">List organizer applications</span>
           </div>
-          <div class="endpoint-details">
+          <div class="endpoint-body">
             <h4>Get All Organizers with Approval Status</h4>
             <p>List all organizers filtered by approval status.</p>
 
@@ -3102,10 +3102,10 @@ Content-Type: multipart/form-data</pre>
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method get">GET</span>
-            <span class="path">/api/admin/organizers/pending</span>
-            <span class="toggle">▶</span>
+            <span class="endpoint-path">/api/admin/organizers/pending</span>
+            <span class="endpoint-desc">List pending organizer applications</span>
           </div>
-          <div class="endpoint-details">
+          <div class="endpoint-body">
             <h4>Get Pending Organizer Applications</h4>
             <p>Retrieve organizers awaiting approval.</p>
 
@@ -3146,10 +3146,10 @@ Content-Type: multipart/form-data</pre>
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method post">POST</span>
-            <span class="path">/api/admin/organizers/:id/approve</span>
-            <span class="toggle">▶</span>
+            <span class="endpoint-path">/api/admin/organizers/:id/approve</span>
+            <span class="endpoint-desc">Approve organizer application</span>
           </div>
-          <div class="endpoint-details">
+          <div class="endpoint-body">
             <h4>Approve Organizer Application</h4>
             <p>Approve a pending organizer application.</p>
 
@@ -3195,10 +3195,10 @@ Content-Type: multipart/form-data</pre>
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method post">POST</span>
-            <span class="path">/api/admin/organizers/:id/reject</span>
-            <span class="toggle">▶</span>
+            <span class="endpoint-path">/api/admin/organizers/:id/reject</span>
+            <span class="endpoint-desc">Reject organizer application</span>
           </div>
-          <div class="endpoint-details">
+          <div class="endpoint-body">
             <h4>Reject Organizer Application</h4>
             <p>Reject a pending organizer application with reason.</p>
 
@@ -3244,10 +3244,63 @@ Content-Type: multipart/form-data</pre>
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method get">GET</span>
-            <span class="path">/api/admin/events/top</span>
-            <span class="toggle">▶</span>
+            <span class="endpoint-path">/api/admin/organizers/:id/detail</span>
+            <span class="endpoint-desc">Get organizer detail for review</span>
           </div>
-          <div class="endpoint-details">
+          <div class="endpoint-body">
+            <h4>Get Organizer Detail</h4>
+            <p>Fetch organizer profile, owner user info, event summaries, and moderation history before approval.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>id</td>
+                    <td>path</td>
+                    <td>Organizer ID</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "id": "org_123",
+  "status": "PENDING",
+  "organizationName": "Adventure Tours Co",
+  "user": {
+    "id": "user_123",
+    "name": "Alice",
+    "email": "alice@example.com"
+  },
+  "userRoles": ["USER"],
+  "eventCount": 2,
+  "events": [
+    {
+      "id": "evt_101",
+      "title": "City Walk",
+      "status": "PENDING"
+    }
+  ],
+  "moderationLogs": []
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/admin/events/top</span>
+            <span class="endpoint-desc">Get top performing events</span>
+          </div>
+          <div class="endpoint-body">
             <h4>Get Top Performing Events</h4>
             <p>Retrieve events with highest bookings and ratings.</p>
 
@@ -3289,11 +3342,108 @@ Content-Type: multipart/form-data</pre>
 
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
-            <span class="method post">POST</span>
-            <span class="path">/api/admin/events/:id/cancel</span>
-            <span class="toggle">▶</span>
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/admin/events/:id/detail</span>
+            <span class="endpoint-desc">Get event detail for review</span>
           </div>
-          <div class="endpoint-details">
+          <div class="endpoint-body">
+            <h4>Get Event Detail</h4>
+            <p>Fetch event, organizer info, booking/review signals, and moderation history before approval.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>id</td>
+                    <td>path</td>
+                    <td>Event ID</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "id": "evt_123",
+  "status": "PENDING",
+  "title": "Mountain Expedition 2025",
+  "organizer": {
+    "id": "org_123",
+    "status": "APPROVED",
+    "user": {
+      "id": "user_123",
+      "name": "Alice",
+      "email": "alice@example.com"
+    }
+  },
+  "metrics": {
+    "totalBookings": 8,
+    "confirmedBookings": 5,
+    "reviewCount": 3
+  },
+  "moderationLogs": []
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/admin/events/:id/approve</span>
+            <span class="endpoint-desc">Approve pending event</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Approve Event</h4>
+            <p>Approve a pending event submitted by an approved organizer.</p>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>id</td>
+                    <td>path</td>
+                    <td>Event ID</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h5>Request Body</h5>
+            <pre><code class="language-json">{}</code></pre>
+
+            <h5>Response (200 OK)</h5>
+            <pre><code class="language-json">{
+  "message": "Event approved successfully",
+  "event": {
+    "id": "evt_123",
+    "status": "CONFIRMED",
+    "approvedBy": "admin_001"
+  }
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/admin/events/:id/cancel</span>
+            <span class="endpoint-desc">Cancel event</span>
+          </div>
+          <div class="endpoint-body">
             <h4>Cancel Event</h4>
             <p>Cancel an active event.</p>
 
@@ -3334,10 +3484,10 @@ Content-Type: multipart/form-data</pre>
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method delete">DELETE</span>
-            <span class="path">/api/admin/events/:id</span>
-            <span class="toggle">▶</span>
+            <span class="endpoint-path">/api/admin/events/:id</span>
+            <span class="endpoint-desc">Delete event</span>
           </div>
-          <div class="endpoint-details">
+          <div class="endpoint-body">
             <h4>Delete Event</h4>
             <p>Permanently delete an event. Cannot delete events with confirmed bookings.</p>
 
@@ -3376,10 +3526,10 @@ Content-Type: multipart/form-data</pre>
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method get">GET</span>
-            <span class="path">/api/admin/reviews/suspicious</span>
-            <span class="toggle">▶</span>
+            <span class="endpoint-path">/api/admin/reviews/suspicious</span>
+            <span class="endpoint-desc">Get suspicious reviews</span>
           </div>
-          <div class="endpoint-details">
+          <div class="endpoint-body">
             <h4>Get Suspicious Reviews</h4>
             <p>
               Retrieve reviews that may require moderation (ratings ≤ 1 or failed
@@ -3427,10 +3577,10 @@ Content-Type: multipart/form-data</pre>
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method post">POST</span>
-            <span class="path">/api/admin/reviews/:id/flag</span>
-            <span class="toggle">▶</span>
+            <span class="endpoint-path">/api/admin/reviews/:id/flag</span>
+            <span class="endpoint-desc">Flag review for moderation</span>
           </div>
-          <div class="endpoint-details">
+          <div class="endpoint-body">
             <h4>Flag Review for Moderation</h4>
             <p>Mark a review as flagged for manual review.</p>
 
@@ -3473,10 +3623,10 @@ Content-Type: multipart/form-data</pre>
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method get">GET</span>
-            <span class="path">/api/admin/logs/moderation</span>
-            <span class="toggle">▶</span>
+            <span class="endpoint-path">/api/admin/logs/moderation</span>
+            <span class="endpoint-desc">Get moderation logs</span>
           </div>
-          <div class="endpoint-details">
+          <div class="endpoint-body">
             <h4>Get Moderation Logs</h4>
             <p>Retrieve audit trail of admin actions.</p>
 
@@ -3532,10 +3682,10 @@ Content-Type: multipart/form-data</pre>
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method get">GET</span>
-            <span class="path">/api/admin/stats/organizers</span>
-            <span class="toggle">▶</span>
+            <span class="endpoint-path">/api/admin/stats/organizers</span>
+            <span class="endpoint-desc">Get organizer statistics</span>
           </div>
-          <div class="endpoint-details">
+          <div class="endpoint-body">
             <h4>Get Organizer Statistics</h4>
             <p>Retrieve statistics about organizers by status.</p>
 
@@ -3574,10 +3724,10 @@ Content-Type: multipart/form-data</pre>
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method get">GET</span>
-            <span class="path">/api/admin/stats/events</span>
-            <span class="toggle">▶</span>
+            <span class="endpoint-path">/api/admin/stats/events</span>
+            <span class="endpoint-desc">Get event statistics</span>
           </div>
-          <div class="endpoint-details">
+          <div class="endpoint-body">
             <h4>Get Event Statistics</h4>
             <p>Retrieve statistics about events.</p>
 
@@ -3612,10 +3762,10 @@ Content-Type: multipart/form-data</pre>
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method get">GET</span>
-            <span class="path">/api/admin/stats/bookings</span>
-            <span class="toggle">▶</span>
+            <span class="endpoint-path">/api/admin/stats/bookings</span>
+            <span class="endpoint-desc">Get booking statistics</span>
           </div>
-          <div class="endpoint-details">
+          <div class="endpoint-body">
             <h4>Get Booking Statistics</h4>
             <p>Retrieve statistics about bookings by status.</p>
 
@@ -3650,10 +3800,10 @@ Content-Type: multipart/form-data</pre>
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method get">GET</span>
-            <span class="path">/api/admin/organizers/top</span>
-            <span class="toggle">▶</span>
+            <span class="endpoint-path">/api/admin/organizers/top</span>
+            <span class="endpoint-desc">Get top organizers</span>
           </div>
-          <div class="endpoint-details">
+          <div class="endpoint-body">
             <h4>Get Top Organizers</h4>
             <p>Retrieve top performing organizers by event count and ratings.</p>
 

@@ -69,6 +69,10 @@ export class BookingService {
       throw new Error("Event not found");
     }
 
+    if (event.status !== "CONFIRMED") {
+      throw new Error("Only confirmed events can be booked");
+    }
+
     const booking = new Booking(
       undefined, // Let Prisma auto-generate the ID
       userId,
