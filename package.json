@@ -8,6 +8,9 @@
     "dev": "tsx src/server.ts",
     "build": "tsc",
     "start": "node dist/src/server.js",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio"
@@ -36,9 +39,11 @@
     "@types/node": "^25.0.8",
     "@types/nodemailer": "^7.0.9",
     "@types/pg": "^8.16.0",
+    "@vitest/coverage-v8": "^4.1.1",
     "prisma": "^7.2.0",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.1"
   }
 }
