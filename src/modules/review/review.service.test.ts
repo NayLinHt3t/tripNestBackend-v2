@@ -12,11 +12,16 @@ const makeReview = (overrides?: Partial<Review>): Review => ({
   eventId: "event-1",
   rating: 4,
   comment: "Great event!",
+  sentimentStatus: "pending",
+  sentimentLabel: null,
+  sentimentScore: null,
   createdAt: new Date(),
   ...overrides,
 });
 
-const makeCreateDto = (overrides?: Partial<CreateReviewDto>): CreateReviewDto => ({
+const makeCreateDto = (
+  overrides?: Partial<CreateReviewDto>,
+): CreateReviewDto => ({
   eventId: "event-1",
   rating: 4,
   comment: "Great event!",
@@ -35,7 +40,10 @@ const makeRepo = (overrides?: Partial<ReviewRepository>): ReviewRepository => ({
   ...overrides,
 });
 
-const makeSentimentService = (): Pick<SentimentService, "createSentimentJob"> => ({
+const makeSentimentService = (): Pick<
+  SentimentService,
+  "createSentimentJob"
+> => ({
   createSentimentJob: vi.fn().mockResolvedValue(undefined),
 });
 
@@ -62,7 +70,9 @@ describe("ReviewService", () => {
     });
 
     it("throws when id is empty", async () => {
-      await expect(service.getReview("")).rejects.toThrow("Review ID is required");
+      await expect(service.getReview("")).rejects.toThrow(
+        "Review ID is required",
+      );
     });
   });
 
@@ -78,7 +88,9 @@ describe("ReviewService", () => {
     });
 
     it("throws when eventId is empty", async () => {
-      await expect(service.getReviewsByEvent("")).rejects.toThrow("Event ID is required");
+      await expect(service.getReviewsByEvent("")).rejects.toThrow(
+        "Event ID is required",
+      );
     });
   });
 
@@ -144,7 +156,10 @@ describe("ReviewService", () => {
       const sentiment = makeSentimentService() as SentimentService;
       service.setSentimentService(sentiment);
 
-      await service.createReview("user-1", makeCreateDto({ comment: "Amazing!" }));
+      await service.createReview(
+        "user-1",
+        makeCreateDto({ comment: "Amazing!" }),
+      );
 
       expect(sentiment.createSentimentJob).toHaveBeenCalledWith("review-1");
     });
@@ -152,16 +167,23 @@ describe("ReviewService", () => {
     it("does not create a sentiment job when comment is absent", async () => {
       const sentiment = makeSentimentService() as SentimentService;
       service.setSentimentService(sentiment);
-      vi.mocked(repo.create).mockResolvedValue(makeReview({ comment: undefined }));
+      vi.mocked(repo.create).mockResolvedValue(
+        makeReview({ comment: undefined }),
+      );
 
-      await service.createReview("user-1", makeCreateDto({ comment: undefined }));
+      await service.createReview(
+        "user-1",
+        makeCreateDto({ comment: undefined }),
+      );
 
       expect(sentiment.createSentimentJob).not.toHaveBeenCalled();
     });
 
     it("does not fail review creation when sentiment job throws", async () => {
       const sentiment = makeSentimentService() as SentimentService;
-      vi.mocked(sentiment.createSentimentJob).mockRejectedValue(new Error("AI down"));
+      vi.mocked(sentiment.createSentimentJob).mockRejectedValue(
+        new Error("AI down"),
+      );
       service.setSentimentService(sentiment);
 
       // Should resolve without throwing
@@ -175,9 +197,13 @@ describe("ReviewService", () => {
 
   describe("updateReview", () => {
     it("updates a review owned by the user", async () => {
-      vi.mocked(repo.findById).mockResolvedValue(makeReview({ userId: "user-1" }));
+      vi.mocked(repo.findById).mockResolvedValue(
+        makeReview({ userId: "user-1" }),
+      );
 
-      const result = await service.updateReview("review-1", "user-1", { rating: 5 });
+      const result = await service.updateReview("review-1", "user-1", {
+        rating: 5,
+      });
 
       expect(repo.update).toHaveBeenCalledWith("review-1", { rating: 5 });
       expect(result).toBeDefined();
@@ -192,7 +218,9 @@ describe("ReviewService", () => {
     });
 
     it("throws when user does not own the review", async () => {
-      vi.mocked(repo.findById).mockResolvedValue(makeReview({ userId: "other-user" }));
+      vi.mocked(repo.findById).mockResolvedValue(
+        makeReview({ userId: "other-user" }),
+      );
 
       await expect(
         service.updateReview("review-1", "user-1", { rating: 3 }),
@@ -200,7 +228,9 @@ describe("ReviewService", () => {
     });
 
     it("throws when updated rating is out of range", async () => {
-      vi.mocked(repo.findById).mockResolvedValue(makeReview({ userId: "user-1" }));
+      vi.mocked(repo.findById).mockResolvedValue(
+        makeReview({ userId: "user-1" }),
+      );
 
       await expect(
         service.updateReview("review-1", "user-1", { rating: 0 }),
@@ -212,7 +242,9 @@ describe("ReviewService", () => {
 
   describe("deleteReview", () => {
     it("deletes a review owned by the user", async () => {
-      vi.mocked(repo.findById).mockResolvedValue(makeReview({ userId: "user-1" }));
+      vi.mocked(repo.findById).mockResolvedValue(
+        makeReview({ userId: "user-1" }),
+      );
 
       const result = await service.deleteReview("review-1", "user-1");
 
@@ -229,7 +261,9 @@ describe("ReviewService", () => {
     });
 
     it("throws when user does not own the review", async () => {
-      vi.mocked(repo.findById).mockResolvedValue(makeReview({ userId: "other-user" }));
+      vi.mocked(repo.findById).mockResolvedValue(
+        makeReview({ userId: "other-user" }),
+      );
 
       await expect(service.deleteReview("review-1", "user-1")).rejects.toThrow(
         "You can only delete your own reviews",
