@@ -1,0 +1,1585 @@
+================================================================================
+                       TRIPNEST CODING STANDARDS
+================================================================================
+Version: 2.0
+Date: 2026-04-16
+Project: TripNest Backend API
+Stack: Node.js, TypeScript, Express 5, Prisma ORM, PostgreSQL
+================================================================================
+
+This document describes not just the rules, but WHY each rule exists and HOW
+to apply it. If you understand the reasoning, edge cases become easier to judge.
+
+
+TABLE OF CONTENTS
+-----------------
+1.  Project Structure
+2.  Code Formatting
+3.  Language & Compiler Settings
+4.  Naming Conventions
+5.  Module Architecture (Layered Design)
+6.  File Organization
+7.  TypeScript Guidelines
+8.  Express Controller Standards
+9.  Service Layer Standards
+10. Repository Pattern
+11. Database & Prisma Standards
+12. Authentication & Authorization
+13. Error Handling
+14. Environment & Configuration
+15. Testing Standards
+16. Utilities & Third-Party Integrations
+17. Forbidden Patterns
+
+
+================================================================================
+1. PROJECT STRUCTURE
+================================================================================
+
+src/
+  index.ts                  -- Express app bootstrap & dependency injection
+  server.ts                 -- HTTP server + Socket.io initialization
+  modules/
+    <feature>/              -- One directory per domain feature
+      <feature>.entity.ts
+      <feature>.repository.ts
+      <feature>.prisma.repository.ts
+      <feature>.service.ts
+      <feature>.controller.ts  (if HTTP-facing)
+      <feature>.middleware.ts  (if applicable)
+      <feature>.service.test.ts
+      <feature>.entity.test.ts
+
+prisma/
+  schema.prisma
+  migrations/
+
+WHY this structure?
+  Each feature is fully self-contained. When you open src/modules/booking/ you
+  find everything that belongs to bookings and nothing else. This avoids the
+  common "utils soup" anti-pattern where files grow without a clear home.
+  Cross-module wiring is done once in src/index.ts so there is a single place
+  to trace the full dependency graph.
+
+Rules:
+  - All domain logic lives inside src/modules/
+  - Each feature is self-contained in its own subdirectory
+  - Cross-module dependencies are injected, never imported directly from another
+    module's internal files
+  - Utilities (cloudinary, email) live in src/modules/utils/
+
+
+================================================================================
+2. CODE FORMATTING
+================================================================================
+
+  - Indentation:     2 spaces (no tabs)
+  - Semicolons:      Required on every statement
+  - Quotes:          Double quotes for all string literals
+  - Trailing commas: Required in all multi-line objects, arrays, and parameters
+  - Line length:     No hard limit; aim for ~100 chars per line
+
+WHY these choices?
+  Double quotes and semicolons eliminate ambiguity across editors and linters.
+  Trailing commas make git diffs cleaner — adding a new property only shows
+  one changed line instead of two (the new line plus the comma on the previous).
+
+  GOOD — trailing comma keeps diffs minimal:
+    res.status(201).json({
+      token,
+      userId: user.userId,
+      email: user.email,
+      roles: user.roles,
+      expiresIn: "7d",
+      message: "Registration successful",   // <-- trailing comma here
+    });
+
+  BAD — no trailing comma pollutes diffs when you add a new field:
+    res.status(201).json({
+      token,
+      userId: user.userId,
+      email: user.email                     // <-- must change this line too
+    })
+
+NULL / UNDEFINED HANDLING
+  Use language features instead of manual checks:
+
+    req.user?.userId          -- optional chaining: safe property access
+    req.user?.roles ?? []     -- nullish coalescing: default only on null/undefined
+    email || null             -- loose OR: fine when any falsy value should fall back
+
+  Example from auth.middleware.ts:
+    const userRoles = req.user?.roles ?? [];
+    return allowedRoles.some((role) => userRoles.includes(role));
+
+
+================================================================================
+3. LANGUAGE & COMPILER SETTINGS
+================================================================================
+
+  - Language: TypeScript 5.x with strict mode enabled
+  - Target: ES2023
+  - Module: Node16 (ESM — "type": "module" in package.json)
+  - Output: ./dist
+  - Test files excluded from compiler output
+
+tsconfig.json requirements:
+  {
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "target": "es2023",
+    "module": "Node16",
+    "moduleResolution": "Node16"
+  }
+
+WHY strict mode?
+  strict: true enables noImplicitAny, strictNullChecks, and several other
+  checks that catch entire categories of bugs at compile time. Disabling it
+  to silence an error is always the wrong answer — fix the type instead.
+
+WHY ESM (Node16 modules)?
+  The project uses "type": "module" in package.json. This means all imports
+  must use the .js extension even for TypeScript source files:
+
+    import { Booking } from "./booking.entity.js";   // CORRECT
+    import { Booking } from "./booking.entity";       // WRONG — will fail at runtime
+
+  Rules:
+  - Never disable strict mode or use @ts-ignore without a documented reason
+  - Do not use `any` unless interfacing with untyped third-party code;
+    prefer `unknown` and narrow with type guards
+
+
+================================================================================
+4. NAMING CONVENTIONS
+================================================================================
+
+Every name in this codebase follows one rule: the name should tell you exactly
+what the thing is and which layer it belongs to without having to open the file.
+
+──────────────────────────────────────────────────────────────────────────────
+4.1  FILES
+──────────────────────────────────────────────────────────────────────────────
+Pattern: {feature}.{role}.ts
+
+WHY?
+  The role suffix tells you the layer at a glance. You never have to open a
+  file to figure out whether it holds database logic, business rules, or HTTP
+  routes. It also makes `grep` and editor fuzzy search predictable — searching
+  "booking.service" will always land you on the right file.
+
+  Role suffixes and what they contain:
+    .entity.ts              Domain class or interface + DTOs for that feature
+    .repository.ts          Repository interface (the contract, no Prisma)
+    .prisma.repository.ts   Prisma implementation of that contract
+    .service.ts             All business logic for that feature
+    .controller.ts          Express Router factory + route handlers
+    .middleware.ts          Express middleware factory functions
+    .service.test.ts        Unit tests for the service layer
+    .entity.test.ts         Unit tests for entity domain methods
+
+  Real files in this project:
+    booking.entity.ts               booking.service.test.ts
+    booking.repository.ts           booking.entity.test.ts
+    booking.prisma.repository.ts    auth.service.test.ts
+    booking.service.ts              review.service.test.ts
+    booking.controller.ts
+    auth.middleware.ts
+    organizer.prisma.repository.ts
+    sentiment.worker.ts             -- worker files use .worker.ts
+    sentiment.analyzer.ts           -- standalone utility classes use descriptive suffix
+
+  BAD file names (avoid):
+    bookingHelper.ts       -- unclear role, unclear layer
+    utils.ts               -- too generic, becomes a dumping ground
+    index.ts inside a module -- causes implicit barrel exports (see Section 6)
+
+──────────────────────────────────────────────────────────────────────────────
+4.2  CLASSES
+──────────────────────────────────────────────────────────────────────────────
+Always PascalCase. The class name combines the domain noun with the layer noun.
+
+WHY PascalCase?
+  JavaScript and TypeScript community standard. Instantly distinguishes a
+  class (BookingService) from an instance variable (bookingService) or a
+  function (createBookingRouter) at the call site.
+
+Pattern: {Domain}{Layer}
+  Services:
+    BookingService      AuthService       ReviewService
+    OrganizerService    ChatService       DashboardService
+
+  Prisma Repositories (concrete implementations):
+    PrismaBookingRepository     PrismaUserRepository
+    PrismaReviewRepository      PrismaOrganizerRepository
+    PrismaChatRepository        PrismaDashboardRepository
+
+  Entities (domain objects with behaviour):
+    Booking             OrganizerProfile    UserProfile
+
+  Workers / Background processes:
+    SentimentWorker     CustomAISentimentAnalyzer
+
+  Real class declaration examples:
+
+    // booking.entity.ts
+    export class Booking { ... }
+
+    // organizer.entity.ts
+    export class OrganizerProfile { ... }
+
+    // profile.entity.ts
+    export class UserProfile { ... }
+
+    // booking.prisma.repository.ts
+    export class PrismaBookingRepository implements BookingRepository { ... }
+
+    // auth.service.ts
+    export class AuthService { ... }
+
+  Private class fields use camelCase with no underscore prefix:
+
+    export class AuthService {
+      private jwtSecret = process.env.JWT_SECRET || "your-secret-key";
+      constructor(private userRepository?: UserRepository) {}
+    }
+
+  BAD class names (avoid):
+    bookingService        -- lowercase, looks like an instance, not a class
+    BookingServiceClass   -- redundant suffix
+    IBookingService       -- "I" prefix is a C# habit, not used here
+    BookingMgr            -- abbreviation hides meaning
+
+──────────────────────────────────────────────────────────────────────────────
+4.3  INTERFACES
+──────────────────────────────────────────────────────────────────────────────
+PascalCase. No "I" prefix. No "Interface" suffix.
+
+WHY no "I" prefix?
+  The "I" prefix is a C# convention that leaked into early TypeScript guides.
+  In this codebase an interface name describes the concept, not the TypeScript
+  construct. BookingRepository reads like plain English. IBookingRepository
+  leaks the implementation detail ("this is an interface") into the name, which
+  is information the caller does not need.
+
+Two categories of interfaces used in this project:
+
+  1. Repository contracts — define what data operations are available
+       UserRepository, BookingRepository, ReviewRepository, OrganizerRepository
+
+  2. Data shapes (DTOs, payloads, results) — define the structure of data
+       User, Event, Review, AuthPayload, SentimentResult, EventInfo
+
+  Real examples from the codebase:
+
+    // user.repository.ts
+    export interface UserRepository {
+      findById(id: string): Promise<User | null>;
+      findByEmail(email: string): Promise<User | null>;
+      create(email: string, password: string, name: string): Promise<User>;
+      updatePassword(id: string, newPassword: string): Promise<boolean>;
+      delete(id: string): Promise<boolean>;
+    }
+
+    // booking.repository.ts
+    export interface BookingRepository {
+      findById(id: string): Promise<Booking | null>;
+      findByUserId(userId: string): Promise<Booking[]>;
+      findEventById(eventId: string): Promise<EventInfo | null>;
+      save(booking: Booking): Promise<Booking>;
+    }
+
+    // auth.service.ts
+    export interface AuthPayload {
+      userId: string;
+      email: string;
+      roles: string[];
+    }
+
+    // auth.middleware.ts — extends Express Request to add the user field
+    export interface AuthenticatedRequest extends Request {
+      user?: AuthPayload;
+    }
+
+    // sentiment.entity.ts
+    export interface SentimentResult {
+      label: string;
+      score: number;
+      negativeSummary?: string | null;
+    }
+
+  HOW to decide interface vs class?
+    Use an interface when the thing is only a data shape or a contract
+    (no constructor, no method bodies, no default values).
+    Use a class when the thing needs a constructor, method implementations,
+    or default property values — like Booking, UserProfile, OrganizerProfile.
+
+──────────────────────────────────────────────────────────────────────────────
+4.4  DTOs (Data Transfer Objects)
+──────────────────────────────────────────────────────────────────────────────
+Pattern: {Action}{Domain}Dto  (always an interface, never a class)
+
+WHY always an interface?
+  A DTO is just a data shape — it has no behaviour, no constructor, no methods.
+  Declaring it as an interface costs nothing at runtime (interfaces disappear
+  after compilation) and signals clearly that it is a pure data contract.
+
+Action prefixes and when to use them:
+  Create{X}Dto    Data required to create a new X
+  Update{X}Dto    Partial data allowed when updating X (all fields optional)
+  Approve{X}Dto   Data required to approve X (used in organizer workflow)
+  Reject{X}Dto    Data required to reject X, includes reason and optional code
+
+  Real DTO interfaces from the codebase:
+
+    // booking.repository.ts
+    export interface EventInfo {       // not a DTO but same pattern — named by content
+      id: string;
+      price: number;
+      status: string;
+    }
+
+    // organizer.entity.ts — full DTO family for one feature
+    export interface CreateOrganizerDto {
+      userId: string;
+      organizationName: string;
+      contactNumber: string;
+      address: string;
+    }
+
+    export interface UpdateOrganizerDto {
+      organizationName?: string;   // all fields optional for partial updates
+      contactNumber?: string;
+      address?: string;
+    }
+
+    export interface ApproveOrganizerDto {
+      organizerId: string;
+      adminId: string;
+    }
+
+    export interface RejectOrganizerDto {
+      organizerId: string;
+      adminId: string;
+      reason: string;
+      code?: string;               // optional — not every rejection has a code
+    }
+
+    // event.entity.ts
+    export interface CreateEventDto {
+      title: string;
+      description: string;
+      date: Date;
+      location: string;
+      capacity: number;
+      price: number;
+      mood?: string | null;
+      imageUrls?: string[];
+      organizerId: string;
+    }
+
+    export interface UpdateEventDto {
+      title?: string;
+      description?: string;
+      date?: Date;
+      location?: string;
+      capacity?: number;
+      price?: number;
+      mood?: string | null;
+    }
+
+    // review.entity.ts
+    export interface CreateReviewDto {
+      eventId: string;
+      rating: number;
+      comment?: string;
+    }
+
+    export interface UpdateReviewDto {
+      rating?: number;
+      comment?: string;
+    }
+
+  Response interfaces (when the response shape differs from the entity):
+
+    // event.entity.ts
+    export interface EventWithAvailableTickets extends Event {
+      bookedTickets: number;
+      availableTickets: number;
+    }
+
+    export interface EventsTicketResponse {
+      eventsSortedByAvailability: EventWithAvailableTickets[];
+      fullyBookedEvents: Event[];
+    }
+
+  Where to declare DTOs?
+    In the same entity file as the domain class or interface they belong to.
+    Keeping them co-located means a contributor only needs to open one file
+    to understand the full data contract for a feature.
+
+──────────────────────────────────────────────────────────────────────────────
+4.5  FUNCTIONS & METHODS
+──────────────────────────────────────────────────────────────────────────────
+All functions and methods use camelCase. There are three distinct patterns
+depending on the function's role.
+
+── A. Service / Repository Methods (verb + noun) ──
+
+  WHY verb-first? Methods describe actions. Starting with a verb makes the
+  intent immediately clear: "what does this do?" — not "what is this?"
+
+  Pattern used for repository methods:
+    findById(id)              -- returns one entity or null
+    findByUserId(userId)      -- returns array filtered by userId
+    findByEventId(eventId)    -- returns array filtered by eventId
+    findAll()                 -- returns all records
+    save(entity)              -- create if no id, update if id present
+    delete(id)                -- removes the record, returns void
+
+  Pattern used for service methods:
+    getBooking(bookingId)           -- fetch one, wraps findById
+    getBookingsByUser(userId)       -- fetch list
+    createBooking(userId, ...)      -- create with business rules
+    updateBooking(bookingId, ...)   -- update with business rules
+    cancelBooking(bookingId)        -- state transition
+    confirmBooking(bookingId)       -- state transition
+
+  Real examples from auth.service.ts:
+    async register(email, password, name)  -- create account + hash password
+    async login(email, password)           -- verify credentials + issue token
+    logout(token)                          -- add token to blacklist
+    generateToken(userId, email, roles)    -- sign and return a JWT
+    verifyToken(token)                     -- decode + validate, returns payload
+    extractToken(authHeader)               -- parse "Bearer <token>" header
+    async changePassword(userId, old, new) -- bcrypt compare + update
+    async forgotPassword(email)            -- generate reset token + send email
+    async resetPassword(token, newPass)    -- validate token + update password
+    isTokenBlacklisted(token)              -- boolean check on the in-memory Set
+
+  Real examples from review.service.ts:
+    getReview(id)
+    getReviewsByEvent(eventId)
+    getReviewsByUser(userId)
+    getEventAverageRating(eventId)
+    createReview(userId, data)
+    setSentimentService(sentimentService)  -- setter injection for optional dep
+
+── B. Factory Functions (create{Feature}{Type}) ──
+
+  WHY factory functions?
+  A factory function receives its dependencies as arguments and closes over
+  them. The returned Router or middleware function uses those dependencies
+  from its outer scope. This gives us dependency injection without a DI
+  framework, and makes testing simple (just pass a different dependency).
+
+  Naming pattern:
+    create{Feature}Router(service)      -- returns an Express Router
+    create{Feature}Middleware(service)  -- returns an Express middleware
+
+  Real examples:
+
+    // booking.controller.ts
+    export function createBookingRouter(bookingService: BookingService): Router {
+      const router = Router();
+      // bookingService is captured in the closure
+      router.get("/me", async (req: AuthenticatedRequest, res: Response) => {
+        const bookings = await bookingService.getBookingsByUser(userId);
+        res.status(200).json(bookings);
+      });
+      return router;
+    }
+
+    // auth.middleware.ts
+    export function createAuthMiddleware(authService: AuthService) {
+      // authService is captured — the returned function can always reach it
+      return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        const token = authService.extractToken(req.headers.authorization);
+        if (!token) return res.status(401).json({ error: "Missing or invalid authorization header" });
+        const payload = authService.verifyToken(token);
+        if (!payload) return res.status(401).json({ error: "Invalid or expired token" });
+        req.user = payload;
+        next();
+      };
+    }
+
+    // Usage in src/index.ts — one line wires the full stack
+    app.use("/api/bookings", authMiddleware, createBookingRouter(bookingService));
+
+── C. Role-Based Middleware (requireRoles) ──
+
+  requireRoles is a higher-order function that returns a middleware. It is NOT
+  prefixed with "create" because it does not take a service dependency — it is
+  purely a guard that reads req.user.
+
+    // auth.middleware.ts
+    export function requireRoles(...allowedRoles: string[]) {
+      return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+        if (!hasRole(req, allowedRoles)) {
+          return res.status(403).json({
+            error: `Forbidden. Required role: ${allowedRoles.join(" or ")}`,
+          });
+        }
+        next();
+      };
+    }
+
+    // hasRole is a named helper — small, focused, reusable inside the module
+    export function hasRole(req: AuthenticatedRequest, allowedRoles: string[]): boolean {
+      const userRoles = req.user?.roles ?? [];
+      return allowedRoles.some((role) => userRoles.includes(role));
+    }
+
+    // Usage — chained with createAuthMiddleware
+    app.use("/api/admin", authMiddleware, requireRoles("ADMIN"), createAdminRouter(...));
+
+──────────────────────────────────────────────────────────────────────────────
+4.6  VARIABLES & PARAMETERS
+──────────────────────────────────────────────────────────────────────────────
+Always camelCase. Always descriptive and domain-specific.
+
+WHY camelCase?
+  JavaScript standard. Visually distinct from PascalCase classes, UPPER_SNAKE
+  constants, and kebab-case file names. One glance tells you what category
+  of thing you are reading.
+
+The name must say what the value represents in the domain:
+
+  GOOD names from this codebase:
+    userId            -- the ID of a user entity
+    eventId           -- the ID of an event entity
+    bookingId         -- the ID of a booking entity
+    ticketCounts      -- number of tickets (plural because it's a count)
+    resetToken        -- a password-reset token string
+    savedBooking      -- the entity returned after a repository save
+    chatRoomId        -- the ID of the chat room, could be undefined
+    hashedPassword    -- already hashed, distinguishes from raw password
+    isPasswordValid   -- boolean result of bcrypt.compare
+    expiresAt         -- a Date object representing when something expires
+    existingUser      -- the user found in the DB before deciding to create
+    tokenData         -- the object pulled from the in-memory resetTokens Map
+
+  Real code from auth.service.ts:
+    const existingUser = await this.userRepository.findByEmail(email);
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+  Real code from booking.service.ts:
+    const event = await this.bookingRepository.findEventById(eventId);
+    const savedBooking = await this.bookingRepository.save(booking);
+    let chatRoomId: string | undefined;
+
+  BAD variable names (avoid):
+    d, e, x, tmp      -- single letters or meaningless abbreviations
+    data              -- what kind of data?
+    result            -- result of what?
+    res               -- ambiguous; reserved for Express Response in controllers
+    obj               -- never acceptable in domain code
+    temp              -- signals uncertainty about what to call it; think harder
+
+  Parameter destructuring — always destructure at the top of the function body:
+
+    // From booking.controller.ts
+    const { eventId, ticketCounts } = req.body;
+    const { id } = req.params as { id: string };
+
+    // From auth.controller.ts (implied)
+    const { email, password, name } = req.body;
+
+──────────────────────────────────────────────────────────────────────────────
+4.7  ENUMS
+──────────────────────────────────────────────────────────────────────────────
+PascalCase enum name. UPPER_SNAKE_CASE values with explicit string literals.
+
+WHY explicit string literals instead of numeric defaults?
+  TypeScript auto-assigns 0, 1, 2... when no value is given. If you ever
+  insert a new value in the middle of the list, every value after it shifts
+  by one. That silently corrupts any existing database rows that stored the
+  old numeric values. String literals are stable: "CONFIRMED" always means
+  CONFIRMED regardless of where the value appears in the enum declaration.
+  They are also self-documenting in logs and API responses.
+
+  BAD — numeric enum (never use this pattern):
+    enum Status { PENDING, CONFIRMED, CANCELLED }
+    // PENDING=0, CONFIRMED=1, CANCELLED=2
+    // Adding AWAITING_PAYMENT before CONFIRMED shifts everything
+
+  GOOD — string enum (used throughout this codebase):
+    enum Status { PENDING="PENDING", CONFIRMED="CONFIRMED", CANCELLED="CANCELLED" }
+    // Safe to reorder or insert new values at any position
+
+  Real enums from the codebase:
+
+    // event.entity.ts
+    export enum EventStatus {
+      PENDING   = "PENDING",
+      CONFIRMED = "CONFIRMED",
+      CANCELLED = "CANCELLED",
+    }
+
+    // organizer.entity.ts
+    export enum ApprovalStatus {
+      PENDING  = "PENDING",
+      APPROVED = "APPROVED",
+      REJECTED = "REJECTED",
+    }
+
+    // sentiment.entity.ts
+    export enum JobStatus {
+      PENDING    = "PENDING",
+      PROCESSING = "PROCESSING",
+      DONE       = "DONE",
+      FAILED     = "FAILED",
+    }
+
+    export enum SentimentStatus {
+      PENDING  = "PENDING",
+      ANALYZED = "ANALYZED",
+      FAILED   = "FAILED",
+    }
+
+  HOW to use enums in code:
+
+    // Comparing — always use the enum, never the raw string
+    if (event.status !== "CONFIRMED") { ... }        // BAD
+    if (event.status !== EventStatus.CONFIRMED) { }  // GOOD
+
+    // Setting default in an entity constructor
+    export class OrganizerProfile {
+      constructor(
+        public status: ApprovalStatus = ApprovalStatus.PENDING,  // default
+      ) {}
+    }
+
+    // Checking in a service
+    if (savedBooking.status === Status.CONFIRMED) {
+      await this.chatService?.ensureRoomForEvent(...);
+    }
+
+  Where to declare enums?
+    Always in the entity file of the feature that owns them. The entity file
+    for booking owns Status. The entity file for organizer owns ApprovalStatus.
+    The entity file for sentiment owns JobStatus and SentimentStatus.
+    Never declare enums in a separate enums.ts file inside a feature folder.
+
+──────────────────────────────────────────────────────────────────────────────
+4.8  CONSTANTS
+──────────────────────────────────────────────────────────────────────────────
+Module-level immutable values use UPPER_SNAKE_CASE.
+
+WHY?
+  The casing immediately signals "this value never changes and is set once
+  at module load time." It visually separates configuration/constants from
+  local variables defined inside functions.
+
+  Real examples from auth.service.ts:
+    const tokenBlacklist = new Set<string>();   // module-level singleton Set
+    const resetTokens = new Map<string, ResetToken>();  // module-level Map
+
+  Note: These are camelCase because they are mutable state (a Set and a Map),
+  not true immutable constants. Reserve UPPER_SNAKE_CASE for values that are
+  genuinely fixed at module load and never reassigned:
+
+    const JWT_EXPIRY = "7d";
+    const BCRYPT_ROUNDS = 10;
+    const MAX_RETRY_ATTEMPTS = 3;
+
+──────────────────────────────────────────────────────────────────────────────
+4.9  DATABASE MODELS (Prisma Schema)
+──────────────────────────────────────────────────────────────────────────────
+The Prisma schema naming follows the same conventions as TypeScript, because
+Prisma generates TypeScript types directly from the schema.
+
+  Model names:     PascalCase singular  →  User, Event, Booking, UserRole
+  Field names:     camelCase            →  userId, eventId, createdAt, updatedAt
+  Relation fields: descriptive camelCase →  organizer, chatRoom, eventImages
+  Enum types:      PascalCase           →  Status, ApprovalStatus, JobStatus
+
+  WHY singular model names?
+    Prisma generates queries like prisma.booking.findMany() — using the model
+    name as a namespace. Singular reads more naturally: "find many booking
+    records" vs "find many bookings records."
+
+  Examples from schema.prisma (representative):
+    model User {
+      id        String   @id @default(uuid())
+      email     String   @unique
+      name      String
+      createdAt DateTime @default(now())
+      roles     UserRole[]            // relation — camelCase, descriptive
+    }
+
+    model Booking {
+      id           String   @id @default(uuid())
+      userId       String                         // camelCase FK
+      eventId      String                         // camelCase FK
+      ticketCounts Int
+      status       Status   @default(CONFIRMED)   // enum type
+      unitPrice    Float?
+      totalPrice   Float?
+      createdAt    DateTime @default(now())
+    }
+
+  Mirror every Prisma enum in the corresponding TypeScript entity file.
+  The generated enums live in generated/prisma/enums.js — import from there
+  in entity files, but re-export them if other layers need them:
+
+    // booking.entity.ts
+    import { Status } from "../../../generated/prisma/enums.js";
+
+
+================================================================================
+5. MODULE ARCHITECTURE (LAYERED DESIGN)
+================================================================================
+
+Every feature follows this 5-layer pattern. Each layer has one job and one
+job only:
+
+  [Entity]  -->  [Repository Interface]  -->  [Prisma Repository]
+                                                      |
+                                               [Service]
+                                                      |
+                                              [Controller/Router]
+
+WHY 5 layers?
+  The layers enforce a strict separation of concerns:
+  - Changing your database (e.g., swapping Prisma for something else) only
+    touches the Prisma Repository layer.
+  - Adding a new API endpoint only touches the Controller layer.
+  - Changing business rules only touches the Service layer.
+  - Testing business logic does not require a running database.
+
+──────────────────────────────────────────────────────────────────────────────
+LAYER 1 — ENTITY  ({feature}.entity.ts)
+──────────────────────────────────────────────────────────────────────────────
+  WHY? The entity is the pure domain object. It carries data and contains
+  methods that describe what the domain naturally does (calculate a price,
+  change a status). It has no knowledge of databases or HTTP.
+
+  HOW? Use a plain TypeScript class with public constructor parameters. DTOs
+  (data transfer shapes) can live in the same file as interfaces.
+
+  Real example — booking.entity.ts:
+    export class Booking {
+      constructor(
+        public id: string | undefined,     // undefined until Prisma assigns an ID
+        public userId: string,
+        public eventId: string,
+        public ticketCounts: number,
+        public status: Status = Status.CONFIRMED,
+        public unitPrice?: number,
+        public totalPrice?: number,
+      ) {}
+
+      // Domain method: the entity knows how to calculate its own price
+      calculateTotalPrice(eventPrice: number) {
+        this.unitPrice = eventPrice;
+        this.totalPrice = eventPrice * this.ticketCounts;
+      }
+
+      // Domain method: updating ticket count also recalculates the total
+      updateTicketCounts(newTicketCounts: number) {
+        this.ticketCounts = newTicketCounts;
+        if (this.unitPrice) {
+          this.totalPrice = this.unitPrice * newTicketCounts;
+        }
+      }
+    }
+
+    // DTOs in the same file — they are just data shapes, not behaviour
+    export interface CreateBookingDto {
+      userId: string;
+      eventId: string;
+      ticketCounts: number;
+    }
+
+──────────────────────────────────────────────────────────────────────────────
+LAYER 2 — REPOSITORY INTERFACE  ({feature}.repository.ts)
+──────────────────────────────────────────────────────────────────────────────
+  WHY? The interface defines the contract for data access in terms of the
+  domain. By depending on an interface instead of Prisma directly, the service
+  can be tested without a database (just swap in a mock that satisfies the
+  interface).
+
+  HOW? Declare a TypeScript interface with one method per data operation.
+  Use entity types, not Prisma model types. Additional data shapes needed only
+  by the repository (like EventInfo) are also declared here.
+
+  Real example — booking.repository.ts:
+    import { Booking } from "./booking.entity.js";
+
+    export interface EventInfo {
+      id: string;
+      price: number;
+      status: string;
+    }
+
+    export interface BookingRepository {
+      findById(id: string): Promise<Booking | null>;
+      findByUserId(userId: string): Promise<Booking[]>;
+      findEventById(eventId: string): Promise<EventInfo | null>;
+      save(booking: Booking): Promise<Booking>;
+    }
+
+──────────────────────────────────────────────────────────────────────────────
+LAYER 3 — PRISMA REPOSITORY  ({feature}.prisma.repository.ts)
+──────────────────────────────────────────────────────────────────────────────
+  WHY? This is the only layer allowed to touch Prisma. It translates between
+  the database row shape and the domain entity. Isolating Prisma here means
+  a database change cannot ripple into business logic.
+
+  HOW? Implement the repository interface. Accept PrismaClient via the
+  constructor (injected from index.ts). After every Prisma query, map the
+  raw row back to a domain entity using `new Entity(...)`.
+
+  The save() method uses id presence to decide create vs update — this keeps
+  the service from needing to know whether a booking already exists.
+
+  Real example — booking.prisma.repository.ts:
+    export class PrismaBookingRepository implements BookingRepository {
+      constructor(private prisma: PrismaClient) {}  // injected, not imported
+
+      async findById(id: string): Promise<Booking | null> {
+        const booking = await this.prisma.booking.findUnique({ where: { id } });
+        // Always map to the domain entity — never return a raw Prisma object
+        return booking
+          ? new Booking(
+              booking.id,
+              booking.userId,
+              booking.eventId,
+              booking.ticketCounts,
+              booking.status as any,
+              booking.unitPrice ?? undefined,
+              booking.totalPrice ?? undefined,
+            )
+          : null;
+      }
+
+      async save(booking: Booking): Promise<Booking> {
+        // id present → update; no id → create (Prisma auto-generates UUID)
+        if (booking.id) {
+          const saved = await this.prisma.booking.update({
+            where: { id: booking.id },
+            data: { status: booking.status, ticketCounts: booking.ticketCounts,
+                    unitPrice: booking.unitPrice, totalPrice: booking.totalPrice },
+          });
+          return new Booking(saved.id, saved.userId, saved.eventId,
+                             saved.ticketCounts, saved.status as any,
+                             saved.unitPrice ?? undefined, saved.totalPrice ?? undefined);
+        }
+        const saved = await this.prisma.booking.create({
+          data: { userId: booking.userId, eventId: booking.eventId,
+                  ticketCounts: booking.ticketCounts, status: booking.status,
+                  unitPrice: booking.unitPrice, totalPrice: booking.totalPrice },
+        });
+        return new Booking(saved.id, saved.userId, saved.eventId,
+                           saved.ticketCounts, saved.status as any,
+                           saved.unitPrice ?? undefined, saved.totalPrice ?? undefined);
+      }
+    }
+
+──────────────────────────────────────────────────────────────────────────────
+LAYER 4 — SERVICE  ({feature}.service.ts)
+──────────────────────────────────────────────────────────────────────────────
+  WHY? All business logic lives here. The service is the "brain" of the
+  feature. It orchestrates repository calls, enforces rules, and throws
+  descriptive errors. It never knows about HTTP.
+
+  HOW? Declare a class. Inject the repository interface (not the concrete
+  Prisma class) via the constructor. Optional dependencies (like ChatService)
+  use the ? parameter syntax and are guarded with null checks before use.
+
+  Validation is ALWAYS the first thing in each public method. Throw immediately
+  so the rest of the method can assume its inputs are valid.
+
+  Real example — booking.service.ts:
+    export class BookingService {
+      constructor(
+        private bookingRepository: BookingRepository,
+        private chatService?: ChatService,   // optional — guarded below
+      ) {}
+
+      async createBooking(
+        userId: string,
+        eventId: string,
+        ticketCounts: number,
+      ): Promise<{ booking: Booking; chatRoomId?: string }> {
+        // 1. Validate first — throw immediately on bad input
+        if (!userId || !eventId || !ticketCounts) {
+          throw new Error("Missing required fields: userId, eventId, ticketCounts");
+        }
+        if (ticketCounts <= 0) {
+          throw new Error("Ticket count must be greater than 0");
+        }
+
+        // 2. Load dependencies from repository
+        const event = await this.bookingRepository.findEventById(eventId);
+        if (!event) throw new Error("Event not found");
+        if (event.status !== "CONFIRMED") {
+          throw new Error("Only confirmed events can be booked");
+        }
+
+        // 3. Build and mutate the entity using its own domain methods
+        const booking = new Booking(undefined, userId, eventId, ticketCounts, Status.CONFIRMED);
+        booking.calculateTotalPrice(event.price);   // entity method, not inline math
+
+        // 4. Persist through the repository
+        const savedBooking = await this.bookingRepository.save(booking);
+
+        // 5. Optional side-effects guarded by null check
+        let chatRoomId: string | undefined;
+        if (this.chatService && savedBooking.status === Status.CONFIRMED) {
+          const room = await this.chatService.ensureRoomForEvent(
+            savedBooking.eventId, savedBooking.userId,
+          );
+          chatRoomId = room.id;
+        }
+
+        return { booking: savedBooking, chatRoomId };
+      }
+    }
+
+──────────────────────────────────────────────────────────────────────────────
+LAYER 5 — CONTROLLER  ({feature}.controller.ts)
+──────────────────────────────────────────────────────────────────────────────
+  WHY? The controller's only job is to translate HTTP into service calls and
+  translate service results (or errors) back into HTTP responses. No business
+  logic belongs here.
+
+  HOW? Export a factory function named create{Feature}Router that receives the
+  service as an argument and returns an Express Router. Every route handler is
+  async and wrapped in try/catch. Errors from the service are inspected with
+  error.message.includes() to pick the right HTTP status code.
+
+  Real example — booking.controller.ts:
+    export function createBookingRouter(bookingService: BookingService): Router {
+      const router = Router();
+
+      // GET /bookings/:id
+      router.get("/:id", async (req: AuthenticatedRequest, res: Response) => {
+        try {
+          const { id } = req.params as { id: string };
+          const booking = await bookingService.getBooking(id);
+          res.status(200).json(booking);
+        } catch (error) {
+          // Check the error message to choose the right status code
+          if (error instanceof Error && error.message.includes("not found")) {
+            return res.status(404).json({ error: error.message });
+          }
+          res.status(400).json({
+            error: error instanceof Error ? error.message : "Internal error",
+          });
+        }
+      });
+
+      // POST /bookings
+      router.post("/", async (req: AuthenticatedRequest, res: Response) => {
+        try {
+          const { eventId, ticketCounts } = req.body;
+          const userId = req.user?.userId;
+          const result = await bookingService.createBooking(
+            userId || "", eventId, ticketCounts,
+          );
+          res.status(201).json(result);
+        } catch (error) {
+          res.status(400).json({
+            error: error instanceof Error ? error.message : "Internal error",
+          });
+        }
+      });
+
+      return router;
+    }
+
+
+================================================================================
+6. FILE ORGANIZATION
+================================================================================
+
+  - One class or interface per file (entities and their DTOs may share a file)
+  - Maximum ~200 lines per file; split if growing larger
+  - Group imports: built-ins first, then third-party, then local
+  - Do not barrel-export (no index.ts re-exports inside modules)
+  - All dependency wiring happens in src/index.ts, not inside modules
+
+WHY no barrel exports?
+  index.ts re-exports create an implicit coupling graph that is hard to trace.
+  When every import has an explicit file path, you can immediately see where
+  something comes from and which module owns it.
+
+IMPORT ORDER EXAMPLE (from booking.service.ts):
+  import { Booking } from "./booking.entity.js";              // local entity
+  import { BookingRepository } from "./booking.repository.js"; // local interface
+  import { Status } from "../../../generated/prisma/enums.js"; // generated
+  import { ChatService } from "../chatting/chatting.service.js"; // cross-module
+
+
+================================================================================
+7. TYPESCRIPT GUIDELINES
+================================================================================
+
+  - Enable and respect strict: true — no escape hatches
+  - Prefer interfaces for repository contracts; use classes for entities and services
+  - Explicit return types on all public methods
+  - Use `unknown` instead of `any`; narrow with type guards or `instanceof`
+
+WHY interfaces for repositories, classes for services/entities?
+  Interfaces have no runtime cost — they disappear after compilation. They are
+  perfect for contracts (repositories) where you only care about the shape.
+  Classes are needed when you want constructor injection, method bodies, or
+  default values — exactly what entities and services provide.
+
+AUTHENTICATED REQUEST
+  When a route needs the logged-in user, extend Express's Request type instead
+  of casting. This ensures TypeScript will catch any incorrect access to
+  req.user elsewhere.
+
+  From auth.middleware.ts:
+    export interface AuthenticatedRequest extends Request {
+      user?: AuthPayload;   // attached by createAuthMiddleware
+    }
+
+  Usage in controllers:
+    router.get("/me", async (req: AuthenticatedRequest, res: Response) => {
+      const userId = req.user?.userId;   // typed, safe access
+      ...
+    });
+
+OTHER RULES
+  - DTOs are interfaces (data shapes only, no methods or constructor)
+  - Enums are declared in the entity file of the owning feature
+  - Avoid type assertions (as X) except when bridging untyped third-party APIs
+  - Use optional chaining (?.) and nullish coalescing (??) over manual null checks
+
+
+================================================================================
+8. EXPRESS CONTROLLER STANDARDS
+================================================================================
+
+  - Controllers export factory functions, not class instances
+  - Signature: create{Feature}Router(service: {Feature}Service): Router
+  - Use express.Router(), not app.get() / app.post() directly
+  - All route handlers must be async
+  - Wrap every handler in try/catch — never let unhandled rejections propagate
+
+WHY factory functions instead of a class?
+  A class-based controller requires instantiation and "this" binding. A factory
+  function is simpler: call it with the service, get back a Router, mount it.
+  There are no extra lifecycle concerns.
+
+  In src/index.ts:
+    app.use("/api/bookings", authMiddleware, createBookingRouter(bookingService));
+
+ERROR → STATUS CODE MAPPING
+  The controller checks the service error message to decide which HTTP code to
+  use. This is intentional: the service throws plain Errors with human-readable
+  messages; the controller reads those messages to route to the right code.
+
+  Pattern used throughout the codebase:
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("not found")) {
+        return res.status(404).json({ error: error.message });
+      }
+      res.status(400).json({
+        error: error instanceof Error ? error.message : "Internal error",
+      });
+    }
+
+HTTP STATUS CODES
+  200  Success (GET, PUT/PATCH that returns updated data)
+  201  Created (POST that creates a new resource)
+  400  Bad request / validation failure
+  401  Unauthenticated (missing or invalid token)
+  403  Forbidden (insufficient role)
+  404  Resource not found
+  409  Conflict (e.g., user email already exists)
+  500  Unexpected server error
+
+RESPONSE SHAPE
+  Success:  res.json(entity) or res.json({ booking, chatRoomId })
+  Error:    res.status(4xx).json({ error: "Human-readable message" })
+
+  - Never leak stack traces or internal details in the HTTP response
+  - Always guard: error instanceof Error ? error.message : "Internal error"
+
+
+================================================================================
+9. SERVICE LAYER STANDARDS
+================================================================================
+
+  - Services are classes with constructor-injected dependencies
+  - All dependencies typed as interfaces, not concrete implementations
+  - Input validation is ALWAYS the first thing in every public method
+  - Throw `new Error("message")` for validation failures and not-found cases
+  - Services are completely unaware of HTTP (no Request/Response types)
+  - Optional side-effect dependencies injected with ? and guarded before use
+  - No static methods on services
+
+WHY validate first?
+  Failing fast at the top of a method means the rest of the function body can
+  be written with the assumption that inputs are valid. It also produces a clear
+  error message instead of a cryptic runtime crash deeper in the call stack.
+
+  // From booking.service.ts — validation block at the top of every method
+  async updateBooking(bookingId: string, ticketCounts: number) {
+    if (!bookingId) throw new Error("Booking ID is required");
+    if (!ticketCounts || ticketCounts <= 0) {
+      throw new Error("Ticket count must be greater than 0");
+    }
+    // Rest of method can safely assume bookingId and ticketCounts are valid
+    const booking = await this.bookingRepository.findById(bookingId);
+    if (!booking) throw new Error("Booking not found");
+    booking.updateTicketCounts(ticketCounts);
+    return this.bookingRepository.save(booking);
+  }
+
+WHY optional dependencies with `?`?
+  Some features enhance others optionally. BookingService can work without
+  ChatService — but when ChatService is provided, it creates a chat room on
+  confirmed bookings. Using ? and a null check means the core feature works
+  in tests or environments where the optional service is not wired up.
+
+  constructor(
+    private bookingRepository: BookingRepository,
+    private chatService?: ChatService,   // optional
+  ) {}
+
+  // Later in the method:
+  if (this.chatService && savedBooking.status === Status.CONFIRMED) {
+    await this.chatService.ensureRoomForEvent(...);
+  }
+
+
+================================================================================
+10. REPOSITORY PATTERN
+================================================================================
+
+  - Every repository must have an interface in {feature}.repository.ts
+  - Only the Prisma repository file imports PrismaClient
+  - Repositories perform only data access; no business logic
+  - Map Prisma rows to domain entity instances before returning
+  - Repositories never throw HTTP errors
+  - Always return null (not undefined) when a record is not found
+
+WHY map rows to entities?
+  Prisma returns plain objects. The rest of the app works with class instances
+  that have domain methods. If you returned raw Prisma objects, entity methods
+  like calculateTotalPrice() would not be available, and the service would have
+  to replicate that logic — defeating the purpose of the entity layer.
+
+  // From booking.prisma.repository.ts
+  async findByUserId(userId: string): Promise<Booking[]> {
+    const rows = await this.prisma.booking.findMany({ where: { userId } });
+    return rows.map(
+      (row) =>
+        new Booking(           // always construct the domain entity
+          row.id,
+          row.userId,
+          row.eventId,
+          row.ticketCounts,
+          row.status as any,
+          row.unitPrice ?? undefined,
+          row.totalPrice ?? undefined,
+        ),
+    );
+  }
+
+NAMING CONVENTIONS FOR METHODS
+  findById(id)            -- returns entity | null
+  findAll()               -- returns entity[]
+  findBy{Field}(value)    -- returns entity[] or entity | null
+  save(entity)            -- create or update, returns the persisted entity
+  delete(id)              -- void
+
+
+================================================================================
+11. DATABASE & PRISMA STANDARDS
+================================================================================
+
+  - Prisma schema lives exclusively in prisma/schema.prisma
+  - PrismaClient is a singleton instantiated lazily in src/modules/database/
+  - Never instantiate PrismaClient outside the database module
+  - Use `prisma migrate dev` for local schema changes
+  - Use `prisma migrate deploy` in production/CI
+
+WHY a singleton PrismaClient?
+  Creating a new PrismaClient per request would exhaust the connection pool
+  quickly. The singleton is created once at startup and reused across all
+  requests. It is injected into repositories via their constructors.
+
+SCHEMA CONVENTIONS
+  - All models have:  id String @id @default(uuid())
+  - Time-aware models have:  createdAt DateTime @default(now())
+                             updatedAt DateTime @updatedAt
+  - Junction tables are explicit named models: UserRole, ChatMember
+  - Enum types defined in schema are mirrored in TypeScript entity files
+  - Relation fields are named descriptively: organizer, chatRoom, eventImages
+
+QUERY STANDARDS
+  - findUnique  for lookups by primary key or unique field
+  - findMany    with a where clause for list queries
+  - select      to fetch only needed fields (see findEventById example below):
+
+      async findEventById(eventId: string): Promise<EventInfo | null> {
+        return this.prisma.event.findUnique({
+          where: { id: eventId },
+          select: { id: true, price: true, status: true },  // only what's needed
+        });
+      }
+
+  - Use include sparingly; prefer separate queries for deeply nested data
+  - Always handle the null case from findUnique and findFirst
+
+
+================================================================================
+12. AUTHENTICATION & AUTHORIZATION
+================================================================================
+
+JWT TOKENS
+  - Signed with HS256 using JWT_SECRET from environment
+  - Expiry: 7 days
+  - Payload shape: { userId, email, roles[] }
+  - Extracted from Authorization header: "Bearer <token>"
+
+HOW authentication works (auth.middleware.ts):
+  createAuthMiddleware(authService) returns a middleware function. When a
+  request arrives, it:
+    1. Pulls the token from the Authorization header via authService.extractToken()
+    2. Verifies and decodes it via authService.verifyToken()
+    3. Attaches the decoded payload to req.user
+    4. Calls next() so the route handler can read req.user
+
+  export function createAuthMiddleware(authService: AuthService) {
+    return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+      const token = authService.extractToken(req.headers.authorization);
+      if (!token) return res.status(401).json({ error: "Missing or invalid authorization header" });
+      const payload = authService.verifyToken(token);
+      if (!payload) return res.status(401).json({ error: "Invalid or expired token" });
+      req.user = payload;   // now available in all downstream handlers
+      next();
+    };
+  }
+
+HOW authorization works:
+  requireRoles(...allowedRoles) is a higher-order function that returns a
+  middleware. It checks req.user.roles (set by createAuthMiddleware above)
+  against the allowed list.
+
+  export function requireRoles(...allowedRoles: string[]) {
+    return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+      if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+      if (!hasRole(req, allowedRoles)) {
+        return res.status(403).json({
+          error: `Forbidden. Required role: ${allowedRoles.join(" or ")}`,
+        });
+      }
+      next();
+    };
+  }
+
+  Mounting with both middlewares in src/index.ts:
+    app.use("/api/admin", authMiddleware, requireRoles("ADMIN"), createAdminRouter(...));
+
+PASSWORDS
+  - Hashed with bcrypt, cost factor 10
+  - Never store or log plaintext passwords
+  - Comparison done with bcrypt.compare(), never manual string equality
+
+ROLES
+  - Defined as RoleType enum: USER, ORGANIZER, ADMIN
+  - Stored in UserRole join table (many-to-many)
+  - Default role on registration: USER
+
+CURRENT LIMITATIONS (to fix before production)
+  - Token blacklist is an in-memory Set — cleared on server restart.
+    Replace with a Redis or database-backed store.
+  - Password reset tokens are in an in-memory Map with 1-hour TTL.
+    Replace with a database-persisted token.
+
+
+================================================================================
+13. ERROR HANDLING
+================================================================================
+
+The pattern follows a strict division of responsibility:
+  Services THROW.  Controllers CATCH and translate.
+
+WHY this split?
+  Services do not know whether they are called from an HTTP handler, a
+  background job, or a test. Returning an HTTP status code from a service
+  would couple it to HTTP. By throwing plain Errors, the service stays
+  transport-agnostic, and the controller decides what status code fits.
+
+THROW IN SERVICES
+  Services throw new Error("descriptive message") for every failure case:
+  validation failures, not-found records, and business rule violations.
+
+  // booking.service.ts
+  if (!bookingId) throw new Error("Booking ID is required");
+  if (!booking) throw new Error("Booking not found");
+  if (event.status !== "CONFIRMED") throw new Error("Only confirmed events can be booked");
+
+ERROR MESSAGE GUIDELINES
+  Messages should be user-facing and descriptive. Contributors can read them
+  to understand what went wrong without looking at a stack trace.
+
+  GOOD:  "Ticket count must be greater than 0"
+  GOOD:  "Event not found"
+  GOOD:  "User with this email already exists"
+  BAD:   "Error at line 47"
+  BAD:   "Prisma constraint violation P2002"
+
+CATCH IN CONTROLLERS
+  Inspect the error message with .includes() to route to the right status code.
+  Fall back to 400 for generic validation errors. Always type-guard the error.
+
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("not found")) {
+      return res.status(404).json({ error: error.message });
+    }
+    if (error instanceof Error && error.message.includes("already exists")) {
+      return res.status(409).json({ error: error.message });
+    }
+    res.status(400).json({
+      error: error instanceof Error ? error.message : "Internal error",
+    });
+  }
+
+  Never use: catch (error) {} (silent swallow)
+  Never use: res.json({ error: error.stack }) (exposes internals)
+
+ASYNC ERRORS
+  All async route handlers must be wrapped in try/catch. Never rely on
+  Express's default unhandled-rejection behavior.
+
+
+================================================================================
+14. ENVIRONMENT & CONFIGURATION
+================================================================================
+
+  - All secrets and config values come from environment variables via dotenv
+  - Never hardcode secrets, API keys, or URLs in source code
+  - A .env.example file must always be kept up to date with all required keys
+  - Provide safe defaults only for non-sensitive values (PORT=3000)
+  - Never commit .env to source control
+
+WHY env vars only in index.ts / server.ts?
+  If modules read process.env directly, configuration is spread across the
+  entire codebase. Centralizing it in index.ts means there is one place to
+  audit, one place to change, and dependencies receive config as constructor
+  arguments — making them testable without environment setup.
+
+REQUIRED ENV VARS
+  DATABASE_URL          PostgreSQL connection string
+  PORT                  HTTP port (default: 3000)
+  JWT_SECRET            Secret for signing JWTs
+  AI_API                URL of the sentiment analysis microservice
+  CLOUDINARY_CLOUD_NAME Cloudinary account identifier
+  CLOUDINARY_API_KEY    Cloudinary API key
+  CLOUDINARY_API_SECRET Cloudinary API secret
+  GMAIL_USER            Gmail address for Nodemailer
+  GMAIL_APP_PASSWORD    Gmail app password
+  FRONTEND_URL          Base URL of the frontend (used in email links)
+
+
+================================================================================
+15. TESTING STANDARDS
+================================================================================
+
+FRAMEWORK
+  - Vitest (ESM-native, compatible with "type": "module")
+  - Test globals enabled: describe, it, expect, beforeEach, vi
+    -- no need to import these, they are available globally
+  - Coverage via v8 provider
+
+SCRIPTS
+  npm test              -- Watch mode (development)
+  npm run test:run      -- Single-pass (CI)
+  npm run test:coverage -- Single-pass with coverage report
+
+WHAT TO TEST
+  - Service layer: every public method, all happy paths AND error paths
+  - Entity layer: all domain methods (calculateTotalPrice, updateTicketCounts)
+  - Skip Prisma repositories in unit tests — test those with integration tests
+
+WHY test services, not controllers?
+  Controllers are thin glue code. All real logic is in services. Testing the
+  service in isolation (with a mock repository) gives you fast, deterministic
+  tests with full coverage of the actual rules. Controllers are tested
+  end-to-end via integration tests.
+
+MAKER FACTORY PATTERN
+  WHY? Repeating new Booking("id", "user", "event", ...) everywhere is fragile.
+  If the constructor signature changes, you fix it in one place (the factory),
+  not in every test. Overrides allow per-test customization without re-typing
+  all arguments.
+
+  HOW? Define a makeX() function that returns a fully constructed object with
+  sensible defaults. Pass an overrides partial to customize only what matters
+  for that specific test.
+
+  Real example from booking.service.test.ts:
+    // Test data factory — defaults cover the happy path
+    const makeBooking = (overrides?: Partial<Booking>): Booking =>
+      Object.assign(
+        new Booking("booking-1", "user-1", "event-1", 2, Status.CONFIRMED, 1000, 2000),
+        overrides,
+      );
+
+    // Repository mock factory — satisfies the full interface
+    const makeRepo = (overrides?: Partial<BookingRepository>): BookingRepository => ({
+      findById: vi.fn().mockResolvedValue(makeBooking()),
+      findByUserId: vi.fn().mockResolvedValue([makeBooking()]),
+      findEventById: vi.fn().mockResolvedValue({ id: "event-1", price: 1000, status: "CONFIRMED" }),
+      save: vi.fn().mockImplementation(async (b: Booking) => b),
+      ...overrides,
+    });
+
+  Usage:
+    beforeEach(() => {
+      repo = makeRepo();
+      service = new BookingService(repo);
+    });
+
+    it("back-fills prices when they are missing", async () => {
+      const incomplete = makeBooking({ unitPrice: undefined, totalPrice: undefined });
+      vi.mocked(repo.findById).mockResolvedValue(incomplete);
+      await service.getBooking("booking-1");
+      expect(repo.save).toHaveBeenCalled();
+      expect(incomplete.unitPrice).toBe(1000);
+    });
+
+MOCKING RULES
+  - Use vi.fn() to create mock functions; never vi.mock() on whole modules
+  - Constructor injection makes mocking trivial — no module-level patching needed
+  - Each test creates a fresh service + repo via beforeEach to avoid state leaks
+
+TEST NAMING
+  Names are read as a sentence: describe + describe + it = one complete thought.
+
+  describe("BookingService") {
+    describe("createBooking") {
+      it("throws when ticket count is zero")
+      it("throws when event is not confirmed")
+      it("saves and returns the new booking with calculated price")
+      it("creates a chat room when chat service is provided")
+    }
+  }
+
+TEST FILE PLACEMENT
+  Co-located with the source file it tests:
+    src/modules/booking/booking.service.test.ts
+    src/modules/booking/booking.entity.test.ts
+
+  Test files are excluded from tsconfig compilation.
+
+COVERAGE TARGETS
+  - Services:           aim for 90%+ branch coverage
+  - Entities with logic: 100% line coverage
+  - Controllers:        not unit-tested (integration-test candidates)
+
+KNOWN PITFALL
+  - tokenBlacklist in AuthService is a module-level singleton (a Set).
+    Use unique userId/token values per test to avoid cross-test pollution.
+  - Run test:run (not watch mode) in CI to avoid port or timer conflicts.
+
+
+================================================================================
+16. UTILITIES & THIRD-PARTY INTEGRATIONS
+================================================================================
+
+CLOUDINARY (Image Upload)
+  - Abstracted in src/modules/utils/cloudinary.ts
+  - Upload via uploadImageBuffer(buffer, options)
+  - Use Multer memory storage; pass buffer to cloudinary, store the returned URL
+  - Never store image binaries in the database
+
+  WHY abstract it? Keeping Cloudinary calls behind a utility function means you
+  can swap the image provider (e.g., to S3) without touching feature modules.
+
+NODEMAILER (Email)
+  - Abstracted in src/modules/utils/email.ts
+  - Configured for Gmail with App Password
+  - Use sendPasswordResetEmail(email, token) for password reset flows
+  - HTML emails use FRONTEND_URL for reset links
+
+SOCKET.IO (Real-time Chat)
+  - Server initialized in server.ts and passed into modules via DI
+  - Do not import the io instance directly from server.ts inside modules
+  - Socket events must be documented inline with: // EVENT: <name>
+
+SENTIMENT ANALYSIS
+  - External HTTP microservice called via SentimentAnalyzer interface
+  - Jobs queued asynchronously via SentimentJob model
+  - SentimentWorker polls for PENDING jobs; retries tracked via `attempts` field
+  - Analyzers must implement: analyze(text: string): Promise<SentimentResult>
+  - Never call the sentiment API synchronously from a request handler
+
+  WHY async jobs? The sentiment API may be slow or unavailable. Queuing the
+  job means the user's request returns immediately; the result arrives later.
+
+PRISMA CLIENT SINGLETON
+  - Singleton accessed via the database module helper
+  - Always pass the client as a constructor argument to repositories
+  - Do not call new PrismaClient() anywhere outside src/modules/database/
+
+
+================================================================================
+17. FORBIDDEN PATTERNS
+================================================================================
+
+Each rule below exists because the pattern it bans has caused or will cause
+real problems.
+
+  X  Using `any` without a comment explaining why
+     -- Hides type errors; use `unknown` and narrow instead
+
+  X  Importing PrismaClient outside src/modules/database/ or Prisma repositories
+     -- Defeats the database isolation layer; service tests then require a DB
+
+  X  Writing business logic inside a controller
+     -- Controllers cannot be tested in isolation; logic is untestable without HTTP
+
+  X  Writing HTTP-specific code (Request, Response) inside a service
+     -- Couples the service to HTTP; breaks reusability and testability
+
+  X  Reading process.env directly outside src/index.ts or src/server.ts
+     -- Scatters configuration; pass config as constructor arguments instead
+
+  X  Using app.get / app.post directly instead of express.Router()
+     -- Controllers must be mountable sub-routers, not monolithic route handlers
+
+  X  Hardcoding secrets, tokens, or connection strings in source code
+     -- Security risk; use env vars
+
+  X  Committing a .env file with real credentials
+     -- The file is in .gitignore for this reason; never force-add it
+
+  X  Empty catch blocks (swallowing errors silently)
+     -- Hides failures; every catch must at minimum send an error response
+
+  X  Calling prisma.$disconnect() inside a request handler
+     -- Disconnects the singleton, breaking all subsequent requests
+
+  X  Using synchronous file I/O (fs.readFileSync) in request handlers
+     -- Blocks the Node.js event loop under load
+
+  X  Circular dependencies between modules
+     -- Node's module resolver may silently resolve them as undefined;
+        use DI via index.ts to break cycles
+
+  X  Calling Prisma directly from a service (bypassing the repository interface)
+     -- Bypasses the abstraction layer; makes services untestable without a DB
+
+  X  Middleware that mutates req without extending the Request type
+     -- TypeScript will not catch incorrect access; always extend Request
+
+
+================================================================================
+END OF DOCUMENT
+================================================================================
