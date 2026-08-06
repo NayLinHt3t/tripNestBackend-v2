@@ -61,9 +61,9 @@ export class AdminService {
     await this.logModerationAction({
       entityType: "ORGANIZER",
       entityId: organizerId,
+      adminId,
       action: AdminAction.APPROVE_ORGANIZER,
       reason: "Approved by admin",
-      details: { approverAdminId: adminId },
     });
 
     return approved;
@@ -89,9 +89,10 @@ export class AdminService {
     await this.logModerationAction({
       entityType: "ORGANIZER",
       entityId: organizerId,
+      adminId,
       action: AdminAction.REJECT_ORGANIZER,
       reason,
-      details: { rejectionCode: code, adminId },
+      details: code ? { rejectionCode: code } : undefined,
     });
 
     return rejected;
@@ -106,9 +107,9 @@ export class AdminService {
     await this.logModerationAction({
       entityType: "EVENT",
       entityId: eventId,
+      adminId,
       action: AdminAction.APPROVE_EVENT,
       reason: "Event approved by admin",
-      details: { approverAdminId: adminId },
     });
 
     return approved;
@@ -144,9 +145,9 @@ export class AdminService {
     await this.logModerationAction({
       entityType: "EVENT",
       entityId: eventId,
+      adminId,
       action: AdminAction.ARCHIVE_EVENT,
       reason: reason || "Cancelled by admin",
-      details: { adminId },
     });
 
     return {
@@ -188,9 +189,9 @@ export class AdminService {
     await this.logModerationAction({
       entityType: "EVENT",
       entityId: eventId,
+      adminId,
       action: AdminAction.DELETE_EVENT,
       reason: reason || "Deleted by admin",
-      details: { adminId },
     });
 
     return !!result;
@@ -215,9 +216,9 @@ export class AdminService {
     await this.logModerationAction({
       entityType: "REVIEW",
       entityId: reviewId,
+      adminId,
       action: AdminAction.FLAG_REVIEW,
       reason,
-      details: { adminId },
     });
 
     return review;
@@ -490,18 +491,57 @@ export class AdminService {
   }
 
   /**
-   * Get moderation logs with filters
+   * Get moderation logs with filters, resolving entityId to a
+   * human-readable organizer/event name for display
    */
   async getModerationLogs(
     entityType?: string,
     limit: number = 50,
     offset: number = 0,
   ): Promise<any[]> {
-    return this.prisma.moderationLog.findMany({
+    const logs = await this.prisma.moderationLog.findMany({
       where: entityType ? { entityType } : undefined,
       take: limit,
       skip: offset,
       orderBy: { createdAt: "desc" },
+    });
+
+    const organizerIds = logs
+      .filter((log) => log.entityType === "ORGANIZER")
+      .map((log) => log.entityId);
+    const eventIds = logs
+      .filter((log) => log.entityType === "EVENT")
+      .map((log) => log.entityId);
+
+    const [organizers, events] = await Promise.all([
+      organizerIds.length
+        ? this.prisma.organizerProfile.findMany({
+            where: { id: { in: organizerIds } },
+            select: { id: true, organizationName: true },
+          })
+        : [],
+      eventIds.length
+        ? this.prisma.event.findMany({
+            where: { id: { in: eventIds } },
+            select: { id: true, title: true },
+          })
+        : [],
+    ]);
+
+    const organizerNameById = new Map(
+      organizers.map((org) => [org.id, org.organizationName]),
+    );
+    const eventNameById = new Map(events.map((event) => [event.id, event.title]));
+
+    return logs.map((log) => {
+      const entityName =
+        log.entityType === "ORGANIZER"
+          ? (organizerNameById.get(log.entityId) ?? null)
+          : log.entityType === "EVENT"
+            ? (eventNameById.get(log.entityId) ?? null)
+            : null;
+
+      return { ...log, entityName };
     });
   }
 
@@ -509,9 +549,15 @@ export class AdminService {
    * Log a moderation action
    */
   private async logModerationAction(action: ModerationAction): Promise<any> {
-    // Implement logging to moderationLog table if available
-    // This is a placeholder for future expansion
-    console.log("Moderation action logged:", action);
+    return this.prisma.moderationLog.create({
+      data: {
+        entityType: action.entityType,
+        entityId: action.entityId,
+        adminId: action.adminId,
+        action: action.action,
+        reason: action.reason,
+      },
+    });
   }
 
   /**

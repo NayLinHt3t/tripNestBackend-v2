@@ -14,6 +14,7 @@ export enum AdminAction {
 export interface ModerationAction {
   entityType: string; // "ORGANIZER" | "EVENT" | "REVIEW" | "USER"
   entityId: string;
+  adminId: string;
   action: AdminAction;
   reason?: string;
   details?: Record<string, any>;

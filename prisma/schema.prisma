@@ -181,10 +181,10 @@ model ChatMessage {
 
 model ModerationLog {
   id          String   @id @default(uuid())
-  entityType  String   // "EVENT" | "ORGANIZER"
+  entityType  String   // "EVENT" | "ORGANIZER" | "REVIEW" | "USER"
   entityId    String
   adminId     String
-  action      ApprovalStatus
+  action      String   // AdminAction enum value, e.g. "APPROVE_ORGANIZER"
   reason      String?
   createdAt   DateTime @default(now())
 }
