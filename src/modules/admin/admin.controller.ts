@@ -290,5 +290,75 @@ export function createAdminRouter(adminService: AdminService): Router {
     }),
   );
 
+  // ========== USER MANAGEMENT ==========
+
+  // Get all users
+  router.get(
+    "/users",
+    asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+      const { limit = "50", offset = "0" } = req.query;
+      const users = await adminService.getAllUsers(
+        Number(limit),
+        Number(offset),
+      );
+      res.status(200).json(users);
+    }),
+  );
+
+  // Get user detail
+  router.get(
+    "/users/:id/detail",
+    asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+      const { id } = req.params as { id: string };
+      const detail = await adminService.getUserDetail(id);
+      res.status(200).json(detail);
+    }),
+  );
+
+  // Ban a user
+  router.post(
+    "/users/:id/ban",
+    asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+      const { id } = req.params as { id: string };
+      const { reason } = req.body;
+      const adminId = req.user?.userId;
+
+      if (!adminId) {
+        return res.status(401).json({ error: "Admin ID not found" });
+      }
+
+      if (!reason) {
+        return res.status(400).json({ error: "Ban reason required" });
+      }
+
+      const user = await adminService.banUser(id, adminId, reason);
+
+      res.status(200).json({
+        message: "User banned successfully",
+        user,
+      });
+    }),
+  );
+
+  // Unban a user
+  router.post(
+    "/users/:id/unban",
+    asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+      const { id } = req.params as { id: string };
+      const adminId = req.user?.userId;
+
+      if (!adminId) {
+        return res.status(401).json({ error: "Admin ID not found" });
+      }
+
+      const user = await adminService.unbanUser(id, adminId);
+
+      res.status(200).json({
+        message: "User unbanned successfully",
+        user,
+      });
+    }),
+  );
+
   return router;
 }

@@ -12,7 +12,8 @@ model User {
   email            String            @unique
   name             String
   password         String
-  role             UserRole[]    
+  role             UserRole[]
+  isBanned         Boolean           @default(false)
   createdAt        DateTime          @default(now())
   bookings         Booking[]
   organizerProfile OrganizerProfile?

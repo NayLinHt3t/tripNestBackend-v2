@@ -6,6 +6,7 @@ import { sendPasswordResetEmail } from "../utils/email.js";
 import {
   ValidationError,
   UnauthorizedError,
+  ForbiddenError,
   NotFoundError,
   ConflictError,
 } from "../../shared/errors.js";
@@ -77,6 +78,10 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedError("Invalid email or password");
+    }
+
+    if (user.isBanned) {
+      throw new ForbiddenError("This account has been banned");
     }
 
     const token = this.generateToken(user.id, user.email, user.roles);

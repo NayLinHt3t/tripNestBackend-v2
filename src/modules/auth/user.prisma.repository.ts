@@ -11,6 +11,7 @@ export class PrismaUserRepository implements UserRepository {
       name: user.name,
       password: user.password,
       createdAt: user.createdAt,
+      isBanned: Boolean(user.isBanned),
       roles: Array.isArray(user.role)
         ? user.role.map((r: any) => r.role?.name).filter(Boolean)
         : [],

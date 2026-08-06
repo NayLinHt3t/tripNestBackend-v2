@@ -512,8 +512,11 @@ export class AdminService {
     const eventIds = logs
       .filter((log) => log.entityType === "EVENT")
       .map((log) => log.entityId);
+    const userIds = logs
+      .filter((log) => log.entityType === "USER")
+      .map((log) => log.entityId);
 
-    const [organizers, events] = await Promise.all([
+    const [organizers, events, users] = await Promise.all([
       organizerIds.length
         ? this.prisma.organizerProfile.findMany({
             where: { id: { in: organizerIds } },
@@ -526,12 +529,19 @@ export class AdminService {
             select: { id: true, title: true },
           })
         : [],
+      userIds.length
+        ? this.prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, name: true },
+          })
+        : [],
     ]);
 
     const organizerNameById = new Map(
       organizers.map((org) => [org.id, org.organizationName]),
     );
     const eventNameById = new Map(events.map((event) => [event.id, event.title]));
+    const userNameById = new Map(users.map((user) => [user.id, user.name]));
 
     return logs.map((log) => {
       const entityName =
@@ -539,10 +549,154 @@ export class AdminService {
           ? (organizerNameById.get(log.entityId) ?? null)
           : log.entityType === "EVENT"
             ? (eventNameById.get(log.entityId) ?? null)
-            : null;
+            : log.entityType === "USER"
+              ? (userNameById.get(log.entityId) ?? null)
+              : null;
 
       return { ...log, entityName };
     });
+  }
+
+  /**
+   * Get all users with roles and ban status (admin function)
+   */
+  async getAllUsers(limit: number = 50, offset: number = 0): Promise<any[]> {
+    const users = await this.prisma.user.findMany({
+      take: limit,
+      skip: offset,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        isBanned: true,
+        createdAt: true,
+        role: { include: { role: { select: { name: true } } } },
+      },
+    });
+
+    return users.map((user) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      isBanned: user.isBanned,
+      createdAt: user.createdAt,
+      roles: user.role.map((item) => item.role.name),
+    }));
+  }
+
+  /**
+   * Get a single user's detail, including recent moderation history
+   * (admin function)
+   */
+  async getUserDetail(userId: string): Promise<any> {
+    if (!userId) {
+      throw new ValidationError("User ID is required");
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        isBanned: true,
+        createdAt: true,
+        role: { include: { role: { select: { name: true } } } },
+        _count: { select: { bookings: true, reviews: true } },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+
+    const moderationLogs = await this.prisma.moderationLog.findMany({
+      where: { entityType: "USER", entityId: userId },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      isBanned: user.isBanned,
+      createdAt: user.createdAt,
+      roles: user.role.map((item) => item.role.name),
+      bookingCount: user._count.bookings,
+      reviewCount: user._count.reviews,
+      moderationLogs,
+    };
+  }
+
+  /**
+   * Ban a user and log the action (admin function)
+   */
+  async banUser(userId: string, adminId: string, reason: string): Promise<any> {
+    if (!userId) {
+      throw new ValidationError("User ID is required");
+    }
+    if (!reason?.trim()) {
+      throw new ValidationError("Ban reason is required");
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+    if (user.isBanned) {
+      throw new ValidationError("User is already banned");
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { isBanned: true },
+      select: { id: true, name: true, email: true, isBanned: true },
+    });
+
+    await this.logModerationAction({
+      entityType: "USER",
+      entityId: userId,
+      adminId,
+      action: AdminAction.BAN_USER,
+      reason: reason.trim(),
+    });
+
+    return updated;
+  }
+
+  /**
+   * Unban a user and log the action (admin function)
+   */
+  async unbanUser(userId: string, adminId: string): Promise<any> {
+    if (!userId) {
+      throw new ValidationError("User ID is required");
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+    if (!user.isBanned) {
+      throw new ValidationError("User is not banned");
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { isBanned: false },
+      select: { id: true, name: true, email: true, isBanned: true },
+    });
+
+    await this.logModerationAction({
+      entityType: "USER",
+      entityId: userId,
+      adminId,
+      action: AdminAction.UNBAN_USER,
+      reason: "Unbanned by admin",
+    });
+
+    return updated;
   }
 
   /**
