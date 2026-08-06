@@ -1,6 +1,7 @@
 import { Router, Request, Response, RequestHandler } from "express";
 import { AuthService } from "./auth.service.js";
-import { AuthenticatedRequest } from "./auth.middleware.js";
+import { asyncHandler, getUserId } from "../../shared/http.js";
+import { ValidationError } from "../../shared/errors.js";
 
 export function createAuthRouter(
   authService: AuthService,
@@ -9,14 +10,13 @@ export function createAuthRouter(
   const router = Router();
 
   // Register endpoint - creates a new user
-  router.post("/register", async (req: Request, res: Response) => {
-    try {
+  router.post(
+    "/register",
+    asyncHandler(async (req: Request, res: Response) => {
       const { email, password, name } = req.body;
 
       if (!email || !password) {
-        return res.status(400).json({
-          error: "Missing required fields: email, password",
-        });
+        throw new ValidationError("Missing required fields: email, password");
       }
 
       const user = await authService.register(email, password, name);
@@ -34,25 +34,17 @@ export function createAuthRouter(
         expiresIn: "7d",
         message: "Registration successful",
       });
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("already exists")) {
-        return res.status(409).json({ error: error.message });
-      }
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   // Login endpoint - returns a JWT token
-  router.post("/login", async (req: Request, res: Response) => {
-    try {
+  router.post(
+    "/login",
+    asyncHandler(async (req: Request, res: Response) => {
       const { email, password } = req.body;
 
       if (!email || !password) {
-        return res.status(400).json({
-          error: "Missing required fields: email, password",
-        });
+        throw new ValidationError("Missing required fields: email, password");
       }
 
       const result = await authService.login(email, password);
@@ -65,25 +57,17 @@ export function createAuthRouter(
         expiresIn: "7d",
         message: "Login successful",
       });
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("Invalid")) {
-        return res.status(401).json({ error: error.message });
-      }
-      res.status(500).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   // Logout endpoint - invalidates the token
-  router.post("/logout", (req: Request, res: Response) => {
-    try {
+  router.post(
+    "/logout",
+    asyncHandler(async (req: Request, res: Response) => {
       const token = authService.extractToken(req.headers.authorization);
 
       if (!token) {
-        return res.status(400).json({
-          error: "No token provided",
-        });
+        throw new ValidationError("No token provided");
       }
 
       authService.logout(token);
@@ -91,30 +75,19 @@ export function createAuthRouter(
       res.status(200).json({
         message: "Logout successful",
       });
-    } catch (error) {
-      res.status(500).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   // Change password - requires authentication
-  const changePasswordHandler = async (
-    req: AuthenticatedRequest,
-    res: Response,
-  ) => {
-    try {
-      const userId = req.user?.userId;
+  const changePasswordHandler = asyncHandler(
+    async (req: Request, res: Response) => {
+      const userId = getUserId(req);
       const { oldPassword, newPassword } = req.body;
 
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
       if (!oldPassword || !newPassword) {
-        return res.status(400).json({
-          error: "Missing required fields: oldPassword, newPassword",
-        });
+        throw new ValidationError(
+          "Missing required fields: oldPassword, newPassword",
+        );
       }
 
       await authService.changePassword(userId, oldPassword, newPassword);
@@ -122,15 +95,8 @@ export function createAuthRouter(
       res.status(200).json({
         message: "Password changed successfully",
       });
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("incorrect")) {
-        return res.status(401).json({ error: error.message });
-      }
-      res.status(500).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  };
+    },
+  );
 
   if (authMiddleware) {
     router.post("/change-password", authMiddleware, changePasswordHandler);
@@ -163,20 +129,19 @@ export function createAuthRouter(
   });
 
   // Reset password - uses reset token to set new password
-  router.post("/reset-password", async (req: Request, res: Response) => {
-    try {
+  router.post(
+    "/reset-password",
+    asyncHandler(async (req: Request, res: Response) => {
       const { resetToken, newPassword } = req.body;
 
       if (!resetToken || !newPassword) {
-        return res.status(400).json({
-          error: "Missing required fields: resetToken, newPassword",
-        });
+        throw new ValidationError(
+          "Missing required fields: resetToken, newPassword",
+        );
       }
 
       if (newPassword.length < 6) {
-        return res.status(400).json({
-          error: "Password must be at least 6 characters",
-        });
+        throw new ValidationError("Password must be at least 6 characters");
       }
 
       await authService.resetPassword(resetToken, newPassword);
@@ -184,18 +149,8 @@ export function createAuthRouter(
       res.status(200).json({
         message: "Password reset successfully",
       });
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        (error.message.includes("Invalid") || error.message.includes("expired"))
-      ) {
-        return res.status(400).json({ error: error.message });
-      }
-      res.status(500).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   return router;
 }

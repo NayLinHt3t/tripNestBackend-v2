@@ -7,6 +7,11 @@ import {
 } from "./event.entity.js";
 import { EventRepository } from "./event.repository.js";
 import { PrismaClient } from "../database/prisma.js";
+import {
+  ValidationError,
+  NotFoundError,
+  ForbiddenError,
+} from "../../shared/errors.js";
 
 export class EventService {
   constructor(
@@ -16,7 +21,7 @@ export class EventService {
 
   async getEvent(id: string): Promise<Event | null> {
     if (!id) {
-      throw new Error("Event ID is required");
+      throw new ValidationError("Event ID is required");
     }
     return this.eventRepository.findById(id);
   }
@@ -35,7 +40,7 @@ export class EventService {
 
   async searchByLocation(location: string): Promise<Event[]> {
     if (!location) {
-      throw new Error("Location is required");
+      throw new ValidationError("Location is required");
     }
     return this.eventRepository.findByLocation(location);
   }
@@ -46,7 +51,7 @@ export class EventService {
     mood?: string;
   }): Promise<Event[]> {
     if (!query.location && !query.keyword && !query.mood) {
-      throw new Error("Location, keyword, or mood is required");
+      throw new ValidationError("Location, keyword, or mood is required");
     }
 
     return this.eventRepository.findByQuery(query);
@@ -59,45 +64,45 @@ export class EventService {
   async createEvent(data: CreateEventDto): Promise<Event> {
     // Validate required fields
     if (!data.title?.trim()) {
-      throw new Error("Event title is required");
+      throw new ValidationError("Event title is required");
     }
     if (!data.description?.trim()) {
-      throw new Error("Event description is required");
+      throw new ValidationError("Event description is required");
     }
     if (!data.date) {
-      throw new Error("Event date is required");
+      throw new ValidationError("Event date is required");
     }
     if (!data.location?.trim()) {
-      throw new Error("Event location is required");
+      throw new ValidationError("Event location is required");
     }
 
     // Validate date is in the future
     if (new Date(data.date) <= new Date()) {
-      throw new Error("Event date must be in the future");
+      throw new ValidationError("Event date must be in the future");
     }
 
     // Validate capacity
     if (!data.capacity || data.capacity <= 0) {
-      throw new Error("Capacity must be a positive number");
+      throw new ValidationError("Capacity must be a positive number");
     }
     if (data.capacity > 100000) {
-      throw new Error("Capacity cannot exceed 100,000");
+      throw new ValidationError("Capacity cannot exceed 100,000");
     }
 
     // Validate price
     if (data.price === undefined || data.price === null) {
-      throw new Error("Price is required");
+      throw new ValidationError("Price is required");
     }
     if (data.price < 0) {
-      throw new Error("Price cannot be negative");
+      throw new ValidationError("Price cannot be negative");
     }
     if (data.price > 1000000) {
-      throw new Error("Price cannot exceed 1,000,000");
+      throw new ValidationError("Price cannot exceed 1,000,000");
     }
 
     // Validate organizer exists and is approved
     if (!data.organizerId) {
-      throw new Error("Organizer profile is required to create an event");
+      throw new ValidationError("Organizer profile is required to create an event");
     }
 
     if (this.prisma) {
@@ -106,12 +111,12 @@ export class EventService {
       });
 
       if (!organizer) {
-        throw new Error("Organizer profile not found");
+        throw new NotFoundError("Organizer profile not found");
       }
 
       // Only APPROVED organizers can create events
       if (organizer.status !== "APPROVED") {
-        throw new Error(
+        throw new ForbiddenError(
           `Organizer must be approved to create events. Current status: ${organizer.status}`,
         );
       }
@@ -119,17 +124,17 @@ export class EventService {
 
     // Validate title length
     if (data.title.length > 255) {
-      throw new Error("Event title cannot exceed 255 characters");
+      throw new ValidationError("Event title cannot exceed 255 characters");
     }
 
     // Validate description length
     if (data.description.length > 5000) {
-      throw new Error("Event description cannot exceed 5,000 characters");
+      throw new ValidationError("Event description cannot exceed 5,000 characters");
     }
 
     // Validate location length
     if (data.location.length > 255) {
-      throw new Error("Event location cannot exceed 255 characters");
+      throw new ValidationError("Event location cannot exceed 255 characters");
     }
 
     return this.eventRepository.create(data);
@@ -140,57 +145,57 @@ export class EventService {
    */
   async updateEvent(id: string, data: UpdateEventDto): Promise<Event | null> {
     if (!id) {
-      throw new Error("Event ID is required");
+      throw new ValidationError("Event ID is required");
     }
 
     const existing = await this.eventRepository.findById(id);
     if (!existing) {
-      throw new Error("Event not found");
+      throw new NotFoundError("Event not found");
     }
 
     // Cannot update cancelled events
     if (existing.status === EventStatus.CANCELLED) {
-      throw new Error("Cannot update a cancelled event");
+      throw new ValidationError("Cannot update a cancelled event");
     }
 
     // Validate date if provided
     if (data.date && new Date(data.date) <= new Date()) {
-      throw new Error("Event date must be in the future");
+      throw new ValidationError("Event date must be in the future");
     }
 
     // Validate capacity if provided
     if (data.capacity !== undefined) {
       if (data.capacity <= 0) {
-        throw new Error("Capacity must be greater than 0");
+        throw new ValidationError("Capacity must be greater than 0");
       }
       if (data.capacity > 100000) {
-        throw new Error("Capacity cannot exceed 100,000");
+        throw new ValidationError("Capacity cannot exceed 100,000");
       }
     }
 
     // Validate price if provided
     if (data.price !== undefined) {
       if (data.price < 0) {
-        throw new Error("Price cannot be negative");
+        throw new ValidationError("Price cannot be negative");
       }
       if (data.price > 1000000) {
-        throw new Error("Price cannot exceed 1,000,000");
+        throw new ValidationError("Price cannot exceed 1,000,000");
       }
     }
 
     // Validate title length if provided
     if (data.title && data.title.length > 255) {
-      throw new Error("Event title cannot exceed 255 characters");
+      throw new ValidationError("Event title cannot exceed 255 characters");
     }
 
     // Validate description length if provided
     if (data.description && data.description.length > 5000) {
-      throw new Error("Event description cannot exceed 5,000 characters");
+      throw new ValidationError("Event description cannot exceed 5,000 characters");
     }
 
     // Validate location length if provided
     if (data.location && data.location.length > 255) {
-      throw new Error("Event location cannot exceed 255 characters");
+      throw new ValidationError("Event location cannot exceed 255 characters");
     }
 
     return this.eventRepository.update(id, data);
@@ -202,12 +207,12 @@ export class EventService {
    */
   async deleteEvent(id: string): Promise<boolean> {
     if (!id) {
-      throw new Error("Event ID is required");
+      throw new ValidationError("Event ID is required");
     }
 
     const existing = await this.eventRepository.findById(id);
     if (!existing) {
-      throw new Error("Event not found");
+      throw new NotFoundError("Event not found");
     }
 
     // Check for active bookings
@@ -220,7 +225,7 @@ export class EventService {
       });
 
       if (bookingCount > 0) {
-        throw new Error(
+        throw new ValidationError(
           "Cannot delete event with confirmed bookings. Cancel bookings first.",
         );
       }
@@ -234,16 +239,16 @@ export class EventService {
    */
   async cancelEvent(id: string): Promise<Event | null> {
     if (!id) {
-      throw new Error("Event ID is required");
+      throw new ValidationError("Event ID is required");
     }
 
     const existing = await this.eventRepository.findById(id);
     if (!existing) {
-      throw new Error("Event not found");
+      throw new NotFoundError("Event not found");
     }
 
     if (existing.status === EventStatus.CANCELLED) {
-      throw new Error("Event is already cancelled");
+      throw new ValidationError("Event is already cancelled");
     }
 
     if (!this.prisma) {
@@ -265,10 +270,10 @@ export class EventService {
 
   async approveEvent(id: string, adminId: string): Promise<Event> {
     if (!id) {
-      throw new Error("Event ID is required");
+      throw new ValidationError("Event ID is required");
     }
     if (!adminId) {
-      throw new Error("Admin ID is required");
+      throw new ValidationError("Admin ID is required");
     }
     if (!this.prisma) {
       throw new Error("Prisma client not available");
@@ -280,15 +285,15 @@ export class EventService {
     });
 
     if (!event) {
-      throw new Error("Event not found");
+      throw new NotFoundError("Event not found");
     }
 
     if (event.status !== "PENDING") {
-      throw new Error(`Cannot approve event with status ${event.status}`);
+      throw new ValidationError(`Cannot approve event with status ${event.status}`);
     }
 
     if (!event.organizerId) {
-      throw new Error("Event must belong to an organizer");
+      throw new ValidationError("Event must belong to an organizer");
     }
 
     const organizer = await this.prisma.organizerProfile.findUnique({
@@ -296,7 +301,7 @@ export class EventService {
     });
 
     if (!organizer || organizer.status !== "APPROVED") {
-      throw new Error("Only approved organizers can have approved events");
+      throw new ValidationError("Only approved organizers can have approved events");
     }
 
     const approved = await this.prisma.event.update({
@@ -321,7 +326,7 @@ export class EventService {
    */
   async getEventsByOrganizer(organizerId: string): Promise<Event[]> {
     if (!organizerId) {
-      throw new Error("Organizer ID is required");
+      throw new ValidationError("Organizer ID is required");
     }
 
     if (!this.prisma) {

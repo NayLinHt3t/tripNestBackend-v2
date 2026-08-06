@@ -5,10 +5,47 @@ import {
   ChatRoomWithDetails,
   ChatMessageWithSender,
   ChatMemberWithDetails,
+  ChatMember,
 } from "./chatting.entity.js";
+import { ForbiddenError, NotFoundError } from "../../shared/errors.js";
 
 export class ChatService {
   constructor(private chatRepository: ChatRepository) {}
+
+  /**
+   * Ensure the caller is a member of the room, throwing if not.
+   * Returns the membership record so callers can reuse it.
+   */
+  private async assertMember(
+    roomId: string,
+    userId: string,
+  ): Promise<ChatMember> {
+    const member = await this.chatRepository.findMemberByRoomAndUser(
+      roomId,
+      userId,
+    );
+    if (!member) {
+      throw new ForbiddenError("You are not a member of this chat room");
+    }
+    return member;
+  }
+
+  /** Find the room for an event, creating it if it does not exist yet. */
+  private async findOrCreateRoom(eventId: string): Promise<ChatRoom> {
+    const existing = await this.chatRepository.findRoomByEventId(eventId);
+    return existing ?? this.chatRepository.createRoom(eventId);
+  }
+
+  /** Add the user to the room unless they are already a member. */
+  private async ensureMember(roomId: string, userId: string): Promise<void> {
+    const existing = await this.chatRepository.findMemberByRoomAndUser(
+      roomId,
+      userId,
+    );
+    if (!existing) {
+      await this.chatRepository.addMember(roomId, userId);
+    }
+  }
 
   private async ensureOrganizerMemberForEvent(
     eventId: string,
@@ -18,26 +55,15 @@ export class ChatService {
       await this.chatRepository.getEventOrganizerUserId(eventId);
     if (!organizerUserId) return;
 
-    const existingOrganizer = await this.chatRepository.findMemberByRoomAndUser(
-      roomId,
-      organizerUserId,
-    );
-    if (!existingOrganizer) {
-      await this.chatRepository.addMember(roomId, organizerUserId);
-    }
+    await this.ensureMember(roomId, organizerUserId);
   }
 
   /**
    * Ensure a chat room exists for an event and add the organizer as a member.
    */
   async ensureOrganizerRoomForEvent(eventId: string): Promise<ChatRoom> {
-    let room = await this.chatRepository.findRoomByEventId(eventId);
-    if (!room) {
-      room = await this.chatRepository.createRoom(eventId);
-    }
-
+    const room = await this.findOrCreateRoom(eventId);
     await this.ensureOrganizerMemberForEvent(eventId, room.id!);
-
     return room;
   }
 
@@ -46,21 +72,9 @@ export class ChatService {
    * Does NOT require a confirmed booking (used on booking creation).
    */
   async ensureRoomForEvent(eventId: string, userId: string): Promise<ChatRoom> {
-    let room = await this.chatRepository.findRoomByEventId(eventId);
-    if (!room) {
-      room = await this.chatRepository.createRoom(eventId);
-    }
-
+    const room = await this.findOrCreateRoom(eventId);
     await this.ensureOrganizerMemberForEvent(eventId, room.id!);
-
-    const existingMember = await this.chatRepository.findMemberByRoomAndUser(
-      room.id!,
-      userId,
-    );
-    if (!existingMember) {
-      await this.chatRepository.addMember(room.id!, userId);
-    }
-
+    await this.ensureMember(room.id!, userId);
     return room;
   }
 
@@ -78,27 +92,14 @@ export class ChatService {
       eventId,
     );
     if (!hasBooking) {
-      throw new Error(
+      throw new ForbiddenError(
         "You must have a confirmed booking to access the chat room",
       );
     }
 
-    // Find or create the chat room
-    let room = await this.chatRepository.findRoomByEventId(eventId);
-    if (!room) {
-      room = await this.chatRepository.createRoom(eventId);
-    }
-
+    const room = await this.findOrCreateRoom(eventId);
     await this.ensureOrganizerMemberForEvent(eventId, room.id!);
-
-    // Add user as a member if not already
-    const existingMember = await this.chatRepository.findMemberByRoomAndUser(
-      room.id!,
-      userId,
-    );
-    if (!existingMember) {
-      await this.chatRepository.addMember(room.id!, userId);
-    }
+    await this.ensureMember(room.id!, userId);
 
     const roomDetails =
       await this.chatRepository.findRoomDetailsByEventId(eventId);
@@ -123,14 +124,7 @@ export class ChatService {
     const room = await this.chatRepository.findRoomDetailsById(roomId);
     if (!room) return null;
 
-    // Verify user is a member
-    const member = await this.chatRepository.findMemberByRoomAndUser(
-      roomId,
-      userId,
-    );
-    if (!member) {
-      throw new Error("You are not a member of this chat room");
-    }
+    await this.assertMember(roomId, userId);
 
     return room;
   }
@@ -142,15 +136,7 @@ export class ChatService {
     roomId: string,
     userId: string,
   ): Promise<ChatMemberWithDetails[]> {
-    // Verify user is a member
-    const member = await this.chatRepository.findMemberByRoomAndUser(
-      roomId,
-      userId,
-    );
-    if (!member) {
-      throw new Error("You are not a member of this chat room");
-    }
-
+    await this.assertMember(roomId, userId);
     return this.chatRepository.findMembersByRoomId(roomId);
   }
 
@@ -163,15 +149,7 @@ export class ChatService {
     limit: number = 50,
     before?: Date,
   ): Promise<ChatMessageWithSender[]> {
-    // Verify user is a member
-    const member = await this.chatRepository.findMemberByRoomAndUser(
-      roomId,
-      userId,
-    );
-    if (!member) {
-      throw new Error("You are not a member of this chat room");
-    }
-
+    await this.assertMember(roomId, userId);
     return this.chatRepository.findMessagesByRoomId(roomId, limit, before);
   }
 
@@ -183,14 +161,7 @@ export class ChatService {
     userId: string,
     content: string,
   ): Promise<ChatMessage> {
-    // Verify user is a member
-    const member = await this.chatRepository.findMemberByRoomAndUser(
-      roomId,
-      userId,
-    );
-    if (!member) {
-      throw new Error("You are not a member of this chat room");
-    }
+    await this.assertMember(roomId, userId);
 
     // Validate message content
     const message = new ChatMessage(undefined, roomId, userId, content);
@@ -203,14 +174,7 @@ export class ChatService {
    * Leave a chat room
    */
   async leaveRoom(roomId: string, userId: string): Promise<void> {
-    const member = await this.chatRepository.findMemberByRoomAndUser(
-      roomId,
-      userId,
-    );
-    if (!member) {
-      throw new Error("You are not a member of this chat room");
-    }
-
+    await this.assertMember(roomId, userId);
     await this.chatRepository.removeMember(roomId, userId);
   }
 
@@ -220,7 +184,7 @@ export class ChatService {
   async rejoinRoom(roomId: string, userId: string): Promise<void> {
     const room = await this.chatRepository.findRoomById(roomId);
     if (!room) {
-      throw new Error("Chat room not found");
+      throw new NotFoundError("Chat room not found");
     }
 
     // Verify user still has a confirmed booking
@@ -229,7 +193,7 @@ export class ChatService {
       room.eventId,
     );
     if (!hasBooking) {
-      throw new Error(
+      throw new ForbiddenError(
         "You must have a confirmed booking to join the chat room",
       );
     }
@@ -240,7 +204,8 @@ export class ChatService {
       userId,
     );
     if (existingMember) {
-      throw new Error("You are already a member of this chat room");
+      // Kept as 403 to preserve prior behavior (see plan's open decision).
+      throw new ForbiddenError("You are already a member of this chat room");
     }
 
     await this.chatRepository.addMember(roomId, userId);

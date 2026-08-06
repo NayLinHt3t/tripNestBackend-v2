@@ -1,5 +1,6 @@
 import { Booking } from "./booking.entity.js";
 import { BookingRepository } from "./booking.repository.js";
+import { ValidationError, NotFoundError } from "../../shared/errors.js";
 import { Status } from "../../../generated/prisma/enums.js";
 import { ChatService } from "../chatting/chatting.service.js";
 
@@ -11,7 +12,7 @@ export class BookingService {
 
   async getBooking(bookingId: string): Promise<Booking | null> {
     if (!bookingId) {
-      throw new Error("Booking ID is required");
+      throw new ValidationError("Booking ID is required");
     }
     const booking = await this.bookingRepository.findById(bookingId);
 
@@ -28,7 +29,7 @@ export class BookingService {
   }
   async getBookingsByUser(userId: string): Promise<Booking[]> {
     if (!userId) {
-      throw new Error("User ID is required");
+      throw new ValidationError("User ID is required");
     }
     const bookings = await this.bookingRepository.findByUserId(userId);
 
@@ -55,22 +56,22 @@ export class BookingService {
   ): Promise<{ booking: Booking; chatRoomId?: string }> {
     // Validate inputs
     if (!userId || !eventId || !ticketCounts) {
-      throw new Error("Missing required fields: userId, eventId, ticketCounts");
+      throw new ValidationError("Missing required fields: userId, eventId, ticketCounts");
     }
 
     if (ticketCounts <= 0) {
-      throw new Error("Ticket count must be greater than 0");
+      throw new ValidationError("Ticket count must be greater than 0");
     }
 
     // Get event price
     const event = await this.bookingRepository.findEventById(eventId);
 
     if (!event) {
-      throw new Error("Event not found");
+      throw new NotFoundError("Event not found");
     }
 
     if (event.status !== "CONFIRMED") {
-      throw new Error("Only confirmed events can be booked");
+      throw new ValidationError("Only confirmed events can be booked");
     }
 
     const booking = new Booking(
@@ -102,19 +103,19 @@ export class BookingService {
 
   async confirmBooking(bookingId: string): Promise<Booking | null> {
     if (!bookingId) {
-      throw new Error("Booking ID is required");
+      throw new ValidationError("Booking ID is required");
     }
 
     const booking = await this.bookingRepository.findById(bookingId);
     if (!booking) {
-      throw new Error("Booking not found");
+      throw new NotFoundError("Booking not found");
     }
 
     // If prices are not set, calculate them
     if (!booking.unitPrice || !booking.totalPrice) {
       const event = await this.bookingRepository.findEventById(booking.eventId);
       if (!event) {
-        throw new Error("Event not found");
+        throw new NotFoundError("Event not found");
       }
       booking.calculateTotalPrice(event.price);
     }
@@ -131,12 +132,12 @@ export class BookingService {
 
   async cancelBooking(bookingId: string): Promise<Booking | null> {
     if (!bookingId) {
-      throw new Error("Booking ID is required");
+      throw new ValidationError("Booking ID is required");
     }
 
     const booking = await this.bookingRepository.findById(bookingId);
     if (!booking) {
-      throw new Error("Booking not found");
+      throw new NotFoundError("Booking not found");
     }
 
     booking.status = Status.CANCELLED;
@@ -148,16 +149,16 @@ export class BookingService {
     ticketCounts: number,
   ): Promise<Booking | null> {
     if (!bookingId) {
-      throw new Error("Booking ID is required");
+      throw new ValidationError("Booking ID is required");
     }
 
     if (!ticketCounts || ticketCounts <= 0) {
-      throw new Error("Ticket count must be greater than 0");
+      throw new ValidationError("Ticket count must be greater than 0");
     }
 
     const booking = await this.bookingRepository.findById(bookingId);
     if (!booking) {
-      throw new Error("Booking not found");
+      throw new NotFoundError("Booking not found");
     }
 
     // Update ticket counts and recalculate total price

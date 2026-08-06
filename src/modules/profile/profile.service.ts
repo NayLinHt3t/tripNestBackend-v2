@@ -1,6 +1,11 @@
 import { UserProfile } from "./profile.entity.js";
 import { ProfileRepository } from "./profile.repository.js";
 import { PrismaClient } from "../database/prisma.js";
+import {
+  ValidationError,
+  NotFoundError,
+  ConflictError,
+} from "../../shared/errors.js";
 
 export class ProfileService {
   constructor(
@@ -23,14 +28,14 @@ export class ProfileService {
 
   async getProfileById(id: string): Promise<UserProfile | null> {
     if (!id) {
-      throw new Error("Profile ID is required");
+      throw new ValidationError("Profile ID is required");
     }
     return this.profileRepository.findById(id);
   }
 
   async getProfileByUserId(userId: string): Promise<UserProfile> {
     if (!userId) {
-      throw new Error("User ID is required");
+      throw new ValidationError("User ID is required");
     }
     const profile = await this.profileRepository.findByUserId(userId);
     // Return default profile if no profile exists for user
@@ -46,13 +51,13 @@ export class ProfileService {
     profilePictureUrl?: string,
   ): Promise<UserProfile> {
     if (!userId) {
-      throw new Error("User ID is required");
+      throw new ValidationError("User ID is required");
     }
 
     // Check if profile already exists in database
     const existingProfile = await this.profileRepository.findByUserId(userId);
     if (existingProfile && existingProfile.id) {
-      throw new Error("Profile already exists for this user");
+      throw new ConflictError("Profile already exists for this user");
     }
 
     // Check if user exists (only if we're being strict)
@@ -62,7 +67,7 @@ export class ProfileService {
         where: { id: userId },
       });
       if (!user) {
-        throw new Error("User not found");
+        throw new NotFoundError("User not found");
       }
     } catch (error) {
       if (error instanceof Error && error.message === "User not found") {
@@ -94,12 +99,12 @@ export class ProfileService {
     profilePictureUrl?: string,
   ): Promise<UserProfile | null> {
     if (!id) {
-      throw new Error("Profile ID is required");
+      throw new ValidationError("Profile ID is required");
     }
 
     const profile = await this.profileRepository.findById(id);
     if (!profile) {
-      throw new Error("Profile not found");
+      throw new NotFoundError("Profile not found");
     }
 
     const updatedProfile = new UserProfile(
@@ -117,12 +122,12 @@ export class ProfileService {
 
   async deleteProfile(id: string): Promise<boolean> {
     if (!id) {
-      throw new Error("Profile ID is required");
+      throw new ValidationError("Profile ID is required");
     }
 
     const profile = await this.profileRepository.findById(id);
     if (!profile) {
-      throw new Error("Profile not found");
+      throw new NotFoundError("Profile not found");
     }
 
     return this.profileRepository.delete(id);
