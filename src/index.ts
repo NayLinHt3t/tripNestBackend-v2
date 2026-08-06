@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createBookingRouter } from "./modules/booking/booking.controller.js";
@@ -40,6 +41,26 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Browser clients (admin dashboard, main frontend) need explicit CORS
+// headers - fetch/axios calls are silently blocked without this even
+// though the API itself responds fine (e.g. to curl).
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.ADMIN_DASHBOARD_URL,
+  "http://localhost:5173",
+  "http://localhost:3000",
+]
+  .filter((origin): origin is string => Boolean(origin))
+  .map((origin) => origin.replace(/\/$/, ""));
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  }),
+);
+
 app.use(express.json());
 
 // Initialize Prisma, services, and repositories
