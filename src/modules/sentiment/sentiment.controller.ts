@@ -1,27 +1,27 @@
 import { Router, Request, Response } from "express";
 import { SentimentService } from "./sentiment.service.js";
 import { OrganizerService } from "../organizer/organizer.service.js";
-import { AuthenticatedRequest } from "../auth/auth.middleware.js";
+import { asyncHandler, getUserId } from "../../shared/http.js";
+import { ValidationError } from "../../shared/errors.js";
+
 export function createSentimentRouter(
   sentimentService: SentimentService,
   organizerService: OrganizerService,
 ): Router {
   const router = Router();
 
-  const resolveOrganizer = async (req: AuthenticatedRequest) => {
-    const userId = req.user?.userId;
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
+  const resolveOrganizer = async (req: Request) => {
+    const userId = getUserId(req);
     const organizerProfile = await organizerService.getProfileByUserId(userId);
     if (!organizerProfile || !organizerProfile.id) {
-      throw new Error("Organizer profile is required");
+      throw new ValidationError("Organizer profile is required");
     }
     return organizerProfile.id;
   };
 
-  router.post("/review/:reviewId", async (req: Request, res: Response) => {
-    try {
+  router.post(
+    "/review/:reviewId",
+    asyncHandler(async (req: Request, res: Response) => {
       const { reviewId } = req.params as { reviewId: string };
       const result = await sentimentService.analyzeReview(reviewId);
       res.status(200).json({
@@ -32,51 +32,33 @@ export function createSentimentRouter(
           class: result.class,
         },
       });
-    } catch (error) {
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   router.get(
     "/organizer/events/:eventId/summary",
-    async (req: AuthenticatedRequest, res: Response) => {
-      try {
-        const { eventId } = req.params as { eventId: string };
-        const organizerId = await resolveOrganizer(req);
-        const summary = await sentimentService.getEventSentimentSummary(
-          organizerId,
-          eventId,
-        );
-        res.status(200).json(summary);
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Internal error";
-        const status = message === "Unauthorized" ? 401 : 400;
-        res.status(status).json({ error: message });
-      }
-    },
+    asyncHandler(async (req: Request, res: Response) => {
+      const { eventId } = req.params as { eventId: string };
+      const organizerId = await resolveOrganizer(req);
+      const summary = await sentimentService.getEventSentimentSummary(
+        organizerId,
+        eventId,
+      );
+      res.status(200).json(summary);
+    }),
   );
 
   router.get(
     "/organizer/events/:eventId/reviews",
-    async (req: AuthenticatedRequest, res: Response) => {
-      try {
-        const { eventId } = req.params as { eventId: string };
-        const organizerId = await resolveOrganizer(req);
-        const sentiments = await sentimentService.getEventSentiments(
-          organizerId,
-          eventId,
-        );
-        res.status(200).json({ eventId, sentiments });
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Internal error";
-        const status = message === "Unauthorized" ? 401 : 400;
-        res.status(status).json({ error: message });
-      }
-    },
+    asyncHandler(async (req: Request, res: Response) => {
+      const { eventId } = req.params as { eventId: string };
+      const organizerId = await resolveOrganizer(req);
+      const sentiments = await sentimentService.getEventSentiments(
+        organizerId,
+        eventId,
+      );
+      res.status(200).json({ eventId, sentiments });
+    }),
   );
 
   return router;

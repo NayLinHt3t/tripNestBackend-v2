@@ -1,7 +1,8 @@
-import { Router, Response } from "express";
+import { Router, Request, Response } from "express";
 import { OrganizerService } from "./organizer.service.js";
 import { AuthenticatedRequest, hasRole } from "../auth/auth.middleware.js";
 import { OrganizerProfile, ApprovalStatus } from "./organizer.entity.js";
+import { asyncHandler, getUserId } from "../../shared/http.js";
 
 // Helper function to convert OrganizerProfile entity to response DTO
 function profileToResponse(profile: OrganizerProfile | null) {
@@ -20,8 +21,8 @@ function profileToResponse(profile: OrganizerProfile | null) {
 }
 
 // Helper to check if user is admin
-async function isAdmin(req: AuthenticatedRequest): Promise<boolean> {
-  return hasRole(req, ["ADMIN"]);
+function isAdmin(req: Request): boolean {
+  return hasRole(req as AuthenticatedRequest, ["ADMIN"]);
 }
 
 export function createOrganizerRouter(
@@ -30,49 +31,36 @@ export function createOrganizerRouter(
   const router = Router();
 
   // Get current user's organizer profile
-  router.get("/me", async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const userId = req.user?.userId;
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
+  router.get(
+    "/me",
+    asyncHandler(async (req: Request, res: Response) => {
+      const userId = getUserId(req);
       const profile = await organizerService.getProfileByUserId(userId);
       if (!profile) {
         return res.status(404).json({ error: "Profile not found" });
       }
       res.status(200).json(profileToResponse(profile));
-    } catch (error) {
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   // Get organizer profile by ID
-  router.get("/:id", async (req: AuthenticatedRequest, res: Response) => {
-    try {
+  router.get(
+    "/:id",
+    asyncHandler(async (req: Request, res: Response) => {
       const { id } = req.params as { id: string };
       const profile = await organizerService.getProfileById(id);
       if (!profile) {
         return res.status(404).json({ error: "Profile not found" });
       }
       res.status(200).json(profileToResponse(profile));
-    } catch (error) {
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   // Create organizer profile - requires all fields
-  router.post("/", async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const userId = req.user?.userId;
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
+  router.post(
+    "/",
+    asyncHandler(async (req: Request, res: Response) => {
+      const userId = getUserId(req);
       const { organizationName, contactNumber, address } = req.body;
 
       const profile = await organizerService.createProfile(
@@ -82,21 +70,14 @@ export function createOrganizerRouter(
         address,
       );
       res.status(201).json(profileToResponse(profile));
-    } catch (error) {
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   // Update current user's organizer profile
-  router.patch("/me", async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const userId = req.user?.userId;
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
+  router.patch(
+    "/me",
+    asyncHandler(async (req: Request, res: Response) => {
+      const userId = getUserId(req);
       const { organizationName, contactNumber, address } = req.body;
 
       const existingProfile = await organizerService.getProfileByUserId(userId);
@@ -111,21 +92,13 @@ export function createOrganizerRouter(
         address,
       );
       res.status(200).json(profileToResponse(profile));
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("not found")) {
-        return res.status(404).json({
-          error: error.message,
-        });
-      }
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   // Update organizer profile by ID (admin function)
-  router.patch("/:id", async (req: AuthenticatedRequest, res: Response) => {
-    try {
+  router.patch(
+    "/:id",
+    asyncHandler(async (req: Request, res: Response) => {
       const { id } = req.params as { id: string };
       const { organizationName, contactNumber, address } = req.body;
 
@@ -136,45 +109,29 @@ export function createOrganizerRouter(
         address,
       );
       res.status(200).json(profileToResponse(profile));
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("not found")) {
-        return res.status(404).json({
-          error: error.message,
-        });
-      }
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   // Delete organizer profile
-  router.delete("/:id", async (req: AuthenticatedRequest, res: Response) => {
-    try {
+  router.delete(
+    "/:id",
+    asyncHandler(async (req: Request, res: Response) => {
       const { id } = req.params as { id: string };
       const deleted = await organizerService.deleteProfile(id);
       if (!deleted) {
         return res.status(404).json({ error: "Profile not found" });
       }
       res.status(200).json({ message: "Profile deleted successfully" });
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("not found")) {
-        return res.status(404).json({
-          error: error.message,
-        });
-      }
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   // ========== ADMIN FUNCTIONS ==========
 
   // Get all organizer profiles with optional status filter (admin only)
-  router.get("/admin/all", async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      if (!(await isAdmin(req))) {
+  router.get(
+    "/admin/all",
+    asyncHandler(async (req: Request, res: Response) => {
+      if (!isAdmin(req)) {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -184,111 +141,73 @@ export function createOrganizerRouter(
       );
 
       res.status(200).json(profiles.map((p) => profileToResponse(p)));
-    } catch (error) {
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   // Get pending organizer approvals (admin only)
   router.get(
     "/admin/pending",
-    async (req: AuthenticatedRequest, res: Response) => {
-      try {
-        if (!(await isAdmin(req))) {
-          return res.status(403).json({ error: "Admin access required" });
-        }
-
-        const profiles = await organizerService.getPendingApprovals();
-        res.status(200).json(profiles.map((p) => profileToResponse(p)));
-      } catch (error) {
-        res.status(400).json({
-          error: error instanceof Error ? error.message : "Internal error",
-        });
+    asyncHandler(async (req: Request, res: Response) => {
+      if (!isAdmin(req)) {
+        return res.status(403).json({ error: "Admin access required" });
       }
-    },
+
+      const profiles = await organizerService.getPendingApprovals();
+      res.status(200).json(profiles.map((p) => profileToResponse(p)));
+    }),
   );
 
   // Approve organizer profile (admin only)
   router.post(
     "/admin/:id/approve",
-    async (req: AuthenticatedRequest, res: Response) => {
-      try {
-        if (!(await isAdmin(req))) {
-          return res.status(403).json({ error: "Admin access required" });
-        }
-
-        const { id } = req.params as { id: string };
-        const adminId = req.user?.userId;
-        if (!adminId) {
-          return res.status(401).json({ error: "Unauthorized" });
-        }
-        const profile = await organizerService.approveProfile(id, adminId);
-
-        if (!profile) {
-          return res.status(404).json({ error: "Profile not found" });
-        }
-
-        res.status(200).json({
-          message: "Organizer profile approved successfully",
-          profile: profileToResponse(profile),
-        });
-      } catch (error) {
-        if (error instanceof Error && error.message.includes("not found")) {
-          return res.status(404).json({
-            error: error.message,
-          });
-        }
-        res.status(400).json({
-          error: error instanceof Error ? error.message : "Internal error",
-        });
+    asyncHandler(async (req: Request, res: Response) => {
+      if (!isAdmin(req)) {
+        return res.status(403).json({ error: "Admin access required" });
       }
-    },
+
+      const { id } = req.params as { id: string };
+      const adminId = getUserId(req);
+      const profile = await organizerService.approveProfile(id, adminId);
+
+      if (!profile) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+
+      res.status(200).json({
+        message: "Organizer profile approved successfully",
+        profile: profileToResponse(profile),
+      });
+    }),
   );
 
   // Reject organizer profile (admin only)
   router.post(
     "/admin/:id/reject",
-    async (req: AuthenticatedRequest, res: Response) => {
-      try {
-        if (!(await isAdmin(req))) {
-          return res.status(403).json({ error: "Admin access required" });
-        }
-
-        const { id } = req.params as { id: string };
-        const { reason, code } = req.body;
-        const adminId = req.user?.userId;
-        if (!adminId) {
-          return res.status(401).json({ error: "Unauthorized" });
-        }
-
-        const profile = await organizerService.rejectProfile(
-          id,
-          reason,
-          adminId,
-          code,
-        );
-
-        if (!profile) {
-          return res.status(404).json({ error: "Profile not found" });
-        }
-
-        res.status(200).json({
-          message: "Organizer profile rejected successfully",
-          profile: profileToResponse(profile),
-        });
-      } catch (error) {
-        if (error instanceof Error && error.message.includes("not found")) {
-          return res.status(404).json({
-            error: error.message,
-          });
-        }
-        res.status(400).json({
-          error: error instanceof Error ? error.message : "Internal error",
-        });
+    asyncHandler(async (req: Request, res: Response) => {
+      if (!isAdmin(req)) {
+        return res.status(403).json({ error: "Admin access required" });
       }
-    },
+
+      const { id } = req.params as { id: string };
+      const { reason, code } = req.body;
+      const adminId = getUserId(req);
+
+      const profile = await organizerService.rejectProfile(
+        id,
+        reason,
+        adminId,
+        code,
+      );
+
+      if (!profile) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+
+      res.status(200).json({
+        message: "Organizer profile rejected successfully",
+        profile: profileToResponse(profile),
+      });
+    }),
   );
 
   return router;

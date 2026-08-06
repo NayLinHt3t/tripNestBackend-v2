@@ -5,6 +5,11 @@ import {
 } from "./organizer.entity.js";
 import { OrganizerRepository } from "./organizer.repository.js";
 import { PrismaClient } from "../database/prisma.js";
+import {
+  ValidationError,
+  NotFoundError,
+  ConflictError,
+} from "../../shared/errors.js";
 
 export class OrganizerService {
   constructor(
@@ -39,14 +44,14 @@ export class OrganizerService {
 
   async getProfileById(id: string): Promise<OrganizerProfile | null> {
     if (!id) {
-      throw new Error("Profile ID is required");
+      throw new ValidationError("Profile ID is required");
     }
     return this.organizerRepository.findById(id);
   }
 
   async getProfileByUserId(userId: string): Promise<OrganizerProfile | null> {
     if (!userId) {
-      throw new Error("User ID is required");
+      throw new ValidationError("User ID is required");
     }
     return this.organizerRepository.findByUserId(userId);
   }
@@ -62,18 +67,18 @@ export class OrganizerService {
     address: string,
   ): Promise<OrganizerProfile> {
     if (!userId) {
-      throw new Error("User ID is required");
+      throw new ValidationError("User ID is required");
     }
 
     // Validate required fields
     if (!organizationName?.trim()) {
-      throw new Error("Organization name is required");
+      throw new ValidationError("Organization name is required");
     }
     if (!contactNumber?.trim()) {
-      throw new Error("Contact number is required");
+      throw new ValidationError("Contact number is required");
     }
     if (!address?.trim()) {
-      throw new Error("Address is required");
+      throw new ValidationError("Address is required");
     }
 
     // Verify user exists and get user details
@@ -83,18 +88,18 @@ export class OrganizerService {
     });
 
     if (!user) {
-      throw new Error("User not found");
+      throw new NotFoundError("User not found");
     }
 
     // Check if profile already exists
     const existingProfile = await this.organizerRepository.findByUserId(userId);
     if (existingProfile && existingProfile.id) {
-      throw new Error("Organizer profile already exists for this user");
+      throw new ConflictError("Organizer profile already exists for this user");
     }
 
     // Validate contact number format (basic validation)
     if (!/^\d{7,}$/.test(contactNumber.replace(/\s|-/g, ""))) {
-      throw new Error("Invalid contact number format");
+      throw new ValidationError("Invalid contact number format");
     }
 
     // Create new organizer profile with PENDING status
@@ -120,21 +125,21 @@ export class OrganizerService {
     address?: string,
   ): Promise<OrganizerProfile | null> {
     if (!id) {
-      throw new Error("Profile ID is required");
+      throw new ValidationError("Profile ID is required");
     }
 
     const profile = await this.organizerRepository.findById(id);
     if (!profile) {
-      throw new Error("Profile not found");
+      throw new NotFoundError("Profile not found");
     }
 
     // Cannot update a rejected profile
     if (profile.status === ApprovalStatus.REJECTED) {
-      throw new Error("Cannot update a rejected organizer profile");
+      throw new ValidationError("Cannot update a rejected organizer profile");
     }
 
     if (contactNumber && !/^\d{7,}$/.test(contactNumber.replace(/\s|-/g, ""))) {
-      throw new Error("Invalid contact number format");
+      throw new ValidationError("Invalid contact number format");
     }
 
     const updatedProfile = new OrganizerProfile(
@@ -173,19 +178,19 @@ export class OrganizerService {
     adminId: string,
   ): Promise<OrganizerProfile | null> {
     if (!id) {
-      throw new Error("Profile ID is required");
+      throw new ValidationError("Profile ID is required");
     }
     if (!adminId) {
-      throw new Error("Admin ID is required");
+      throw new ValidationError("Admin ID is required");
     }
 
     const profile = await this.organizerRepository.findById(id);
     if (!profile) {
-      throw new Error("Organizer profile not found");
+      throw new NotFoundError("Organizer profile not found");
     }
 
     if (profile.status !== ApprovalStatus.PENDING) {
-      throw new Error(
+      throw new ValidationError(
         `Cannot approve a ${profile.status.toLowerCase()} profile`,
       );
     }
@@ -205,24 +210,24 @@ export class OrganizerService {
     code?: string,
   ): Promise<OrganizerProfile | null> {
     if (!adminId) {
-      throw new Error("Admin ID is required");
+      throw new ValidationError("Admin ID is required");
     }
 
     if (!id) {
-      throw new Error("Profile ID is required");
+      throw new ValidationError("Profile ID is required");
     }
 
     if (!reason?.trim()) {
-      throw new Error("Rejection reason is required");
+      throw new ValidationError("Rejection reason is required");
     }
 
     const profile = await this.organizerRepository.findById(id);
     if (!profile) {
-      throw new Error("Organizer profile not found");
+      throw new NotFoundError("Organizer profile not found");
     }
 
     if (profile.status !== ApprovalStatus.PENDING) {
-      throw new Error(
+      throw new ValidationError(
         `Cannot reject a ${profile.status.toLowerCase()} profile`,
       );
     }
@@ -235,12 +240,12 @@ export class OrganizerService {
    */
   async deleteProfile(id: string): Promise<boolean> {
     if (!id) {
-      throw new Error("Profile ID is required");
+      throw new ValidationError("Profile ID is required");
     }
 
     const profile = await this.organizerRepository.findById(id);
     if (!profile) {
-      throw new Error("Profile not found");
+      throw new NotFoundError("Profile not found");
     }
 
     // Check if the organizer has any events
@@ -249,7 +254,7 @@ export class OrganizerService {
     });
 
     if (eventCount > 0) {
-      throw new Error(
+      throw new ValidationError(
         "Cannot delete organizer profile with existing events. Please delete all events first.",
       );
     }

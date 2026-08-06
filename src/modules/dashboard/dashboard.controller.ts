@@ -1,8 +1,9 @@
-import { Router, Response } from "express";
+import { Router, Request, Response } from "express";
 import { DashboardService } from "./dashboard.service.js";
 import { OrganizerService } from "../organizer/organizer.service.js";
-import { AuthenticatedRequest } from "../auth/auth.middleware.js";
 import { OrganizerProfile } from "../organizer/organizer.entity.js";
+import { asyncHandler, getUserId } from "../../shared/http.js";
+import { ValidationError } from "../../shared/errors.js";
 
 function profileToResponse(profile: OrganizerProfile | null) {
   if (!profile) return null;
@@ -21,14 +22,11 @@ export function createDashboardRouter(
 ): Router {
   const router = Router();
 
-  const resolveOrganizer = async (req: AuthenticatedRequest) => {
-    const userId = req.user?.userId;
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
+  const resolveOrganizer = async (req: Request) => {
+    const userId = getUserId(req);
     const organizerProfile = await organizerService.getProfileByUserId(userId);
     if (!organizerProfile || !organizerProfile.id) {
-      throw new Error("Organizer profile is required");
+      throw new ValidationError("Organizer profile is required");
     }
     return {
       organizerProfile,
@@ -36,50 +34,41 @@ export function createDashboardRouter(
     };
   };
 
-  router.get("/summary", async (req: AuthenticatedRequest, res: Response) => {
-    try {
+  router.get(
+    "/summary",
+    asyncHandler(async (req: Request, res: Response) => {
       const { organizerProfile, organizerId } = await resolveOrganizer(req);
       const summary = await dashboardService.getSummary(organizerId);
       res.status(200).json({
         ...summary,
         organizer: profileToResponse(organizerProfile),
       });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Internal error";
-      const status = message === "Unauthorized" ? 401 : 400;
-      res.status(status).json({ error: message });
-    }
-  });
+    }),
+  );
 
-  router.get("/events", async (req: AuthenticatedRequest, res: Response) => {
-    try {
+  router.get(
+    "/events",
+    asyncHandler(async (req: Request, res: Response) => {
       const { organizerProfile, organizerId } = await resolveOrganizer(req);
       const events = await dashboardService.getEventRevenue(organizerId);
       res.status(200).json({
         events,
         organizer: profileToResponse(organizerProfile),
       });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Internal error";
-      const status = message === "Unauthorized" ? 401 : 400;
-      res.status(status).json({ error: message });
-    }
-  });
+    }),
+  );
 
-  router.get("/revenue", async (req: AuthenticatedRequest, res: Response) => {
-    try {
+  router.get(
+    "/revenue",
+    asyncHandler(async (req: Request, res: Response) => {
       const { organizerProfile, organizerId } = await resolveOrganizer(req);
       const totals = await dashboardService.getRevenueTotals(organizerId);
       res.status(200).json({
         ...totals,
         organizer: profileToResponse(organizerProfile),
       });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Internal error";
-      const status = message === "Unauthorized" ? 401 : 400;
-      res.status(status).json({ error: message });
-    }
-  });
+    }),
+  );
 
   return router;
 }

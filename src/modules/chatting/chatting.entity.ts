@@ -1,3 +1,5 @@
+import { ValidationError } from "../../shared/errors.js";
+
 export class ChatRoom {
   constructor(
     public id: string | undefined,
@@ -26,10 +28,10 @@ export class ChatMessage {
 
   validate(): void {
     if (!this.content || this.content.trim().length === 0) {
-      throw new Error("Message content cannot be empty");
+      throw new ValidationError("Message content cannot be empty");
     }
     if (this.content.length > 2000) {
-      throw new Error("Message content cannot exceed 2000 characters");
+      throw new ValidationError("Message content cannot exceed 2000 characters");
     }
   }
 }

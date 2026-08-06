@@ -3,6 +3,12 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { UserRepository } from "./user.repository.js";
 import { sendPasswordResetEmail } from "../utils/email.js";
+import {
+  ValidationError,
+  UnauthorizedError,
+  NotFoundError,
+  ConflictError,
+} from "../../shared/errors.js";
 
 export interface AuthPayload {
   userId: string;
@@ -38,7 +44,7 @@ export class AuthService {
     // Check if user already exists
     const existingUser = await this.userRepository.findByEmail(email);
     if (existingUser) {
-      throw new Error("User with this email already exists");
+      throw new ConflictError("User with this email already exists");
     }
 
     // Hash password
@@ -65,12 +71,12 @@ export class AuthService {
 
     const user = await this.userRepository.findByEmail(email);
     if (!user) {
-      throw new Error("Invalid email or password");
+      throw new UnauthorizedError("Invalid email or password");
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new Error("Invalid email or password");
+      throw new UnauthorizedError("Invalid email or password");
     }
 
     const token = this.generateToken(user.id, user.email, user.roles);
@@ -127,12 +133,12 @@ export class AuthService {
 
     const user = await this.userRepository.findById(userId);
     if (!user) {
-      throw new Error("User not found");
+      throw new NotFoundError("User not found");
     }
 
     const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
     if (!isOldPasswordValid) {
-      throw new Error("Old password is incorrect");
+      throw new UnauthorizedError("Old password is incorrect");
     }
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
@@ -174,17 +180,17 @@ export class AuthService {
     const tokenData = resetTokens.get(resetToken);
 
     if (!tokenData) {
-      throw new Error("Invalid or expired reset token");
+      throw new ValidationError("Invalid or expired reset token");
     }
 
     if (new Date() > tokenData.expiresAt) {
       resetTokens.delete(resetToken);
-      throw new Error("Reset token has expired");
+      throw new ValidationError("Reset token has expired");
     }
 
     const user = await this.userRepository.findByEmail(tokenData.email);
     if (!user) {
-      throw new Error("User not found");
+      throw new NotFoundError("User not found");
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);

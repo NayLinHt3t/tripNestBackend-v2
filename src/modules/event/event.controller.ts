@@ -5,6 +5,7 @@ import { uploadImageBuffer } from "../utils/cloudinary.js";
 import { AuthenticatedRequest, hasRole } from "../auth/auth.middleware.js";
 import { OrganizerService } from "../organizer/organizer.service.js";
 import { ChatService } from "../chatting/chatting.service.js";
+import { asyncHandler, getUserId } from "../../shared/http.js";
 
 export function createEventRouter(
   eventService: EventService,
@@ -19,38 +20,33 @@ export function createEventRouter(
   });
 
   // Get all events
-  router.get("/", async (req: Request, res: Response) => {
-    try {
+  router.get(
+    "/",
+    asyncHandler(async (req: Request, res: Response) => {
       const events = await eventService.getAllEvents();
       const visibleEvents = events.filter(
         (event) => event.status === "CONFIRMED",
       );
       res.status(200).json(visibleEvents);
-    } catch (error) {
-      res.status(500).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   // Get upcoming events
-  router.get("/upcoming", async (req: Request, res: Response) => {
-    try {
+  router.get(
+    "/upcoming",
+    asyncHandler(async (req: Request, res: Response) => {
       const events = await eventService.getUpcomingEvents();
       const visibleEvents = events.filter(
         (event) => event.status === "CONFIRMED",
       );
       res.status(200).json(visibleEvents);
-    } catch (error) {
-      res.status(500).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   // Get events arranged by available tickets and list fully booked events
-  router.get("/tickets/availability", async (req: Request, res: Response) => {
-    try {
+  router.get(
+    "/tickets/availability",
+    asyncHandler(async (req: Request, res: Response) => {
       const result = await eventService.getEventsWithAvailableTickets();
       res.status(200).json({
         eventsSortedByAvailability: result.eventsSortedByAvailability.filter(
@@ -60,16 +56,13 @@ export function createEventRouter(
           (event) => event.status === "CONFIRMED",
         ),
       });
-    } catch (error) {
-      res.status(500).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   // Search events by location, keyword, or mood
-  router.get("/search", async (req: Request, res: Response) => {
-    try {
+  router.get(
+    "/search",
+    asyncHandler(async (req: Request, res: Response) => {
       const { location, keyword, mood } = req.query;
 
       const locationValue =
@@ -98,16 +91,13 @@ export function createEventRouter(
         (event) => event.status === "CONFIRMED",
       );
       res.status(200).json(visibleEvents);
-    } catch (error) {
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   // Get event by ID
-  router.get("/:id", async (req: Request, res: Response) => {
-    try {
+  router.get(
+    "/:id",
+    asyncHandler(async (req: Request, res: Response) => {
       const { id } = req.params as { id: string };
       const event = await eventService.getEvent(id);
 
@@ -116,98 +106,75 @@ export function createEventRouter(
       }
 
       res.status(200).json(event);
-    } catch (error) {
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   // Create new event
-  const createHandler = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const userId = req.user?.userId;
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-      if (!hasRole(req, ["ORGANIZER"])) {
-        return res.status(403).json({
-          error: "Only organizer accounts can create events",
-        });
-      }
-      if (!organizerService) {
-        return res.status(500).json({ error: "Organizer service unavailable" });
-      }
-
-      // Get organizer profile for this user
-      const organizerProfile =
-        await organizerService.getProfileByUserId(userId);
-
-      if (!organizerProfile || !organizerProfile.id) {
-        return res.status(400).json({
-          error: "Organizer profile is required to create an event",
-        });
-      }
-
-      // Check if organizer is approved
-      if (organizerProfile.status !== "APPROVED") {
-        return res.status(403).json({
-          error: `Your organizer profile must be approved to create events. Current status: ${organizerProfile.status}`,
-        });
-      }
-
-      const { title, description, date, location, capacity, price, mood } =
-        req.body;
-      const files = Array.isArray(req.files) ? req.files : [];
-
-      const imageUrls = files.length
-        ? await Promise.all(
-            files.map(async (file) => {
-              const uploaded = await uploadImageBuffer(file.buffer, {
-                folder: "tripnest/events",
-                resource_type: "image",
-              });
-              return uploaded.secure_url;
-            }),
-          )
-        : [];
-
-      const parsedCapacity =
-        capacity !== undefined ? Number(capacity) : capacity;
-      const parsedPrice = price !== undefined ? Number(price) : price;
-      const parsedDate = date ? new Date(date) : date;
-
-      const event = await eventService.createEvent({
-        title,
-        description,
-        date: parsedDate,
-        location,
-        capacity: parsedCapacity,
-        price: parsedPrice,
-        mood,
-        imageUrls,
-        organizerId: organizerProfile.id,
-      });
-
-      if (chatService) {
-        await chatService.ensureOrganizerRoomForEvent(event.id!);
-      }
-
-      res.status(201).json(event);
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.includes("must be approved")
-      ) {
-        return res.status(403).json({
-          error: error.message,
-        });
-      }
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
+  const createHandler = asyncHandler(async (req: Request, res: Response) => {
+    const userId = getUserId(req);
+    if (!hasRole(req as AuthenticatedRequest, ["ORGANIZER"])) {
+      return res.status(403).json({
+        error: "Only organizer accounts can create events",
       });
     }
-  };
+    if (!organizerService) {
+      return res.status(500).json({ error: "Organizer service unavailable" });
+    }
+
+    // Get organizer profile for this user
+    const organizerProfile = await organizerService.getProfileByUserId(userId);
+
+    if (!organizerProfile || !organizerProfile.id) {
+      return res.status(400).json({
+        error: "Organizer profile is required to create an event",
+      });
+    }
+
+    // Check if organizer is approved
+    if (organizerProfile.status !== "APPROVED") {
+      return res.status(403).json({
+        error: `Your organizer profile must be approved to create events. Current status: ${organizerProfile.status}`,
+      });
+    }
+
+    const { title, description, date, location, capacity, price, mood } =
+      req.body;
+    const files = Array.isArray(req.files) ? req.files : [];
+
+    const imageUrls = files.length
+      ? await Promise.all(
+          files.map(async (file) => {
+            const uploaded = await uploadImageBuffer(file.buffer, {
+              folder: "tripnest/events",
+              resource_type: "image",
+            });
+            return uploaded.secure_url;
+          }),
+        )
+      : [];
+
+    const parsedCapacity = capacity !== undefined ? Number(capacity) : capacity;
+    const parsedPrice = price !== undefined ? Number(price) : price;
+    const parsedDate = date ? new Date(date) : date;
+
+    const event = await eventService.createEvent({
+      title,
+      description,
+      date: parsedDate,
+      location,
+      capacity: parsedCapacity,
+      price: parsedPrice,
+      mood,
+      imageUrls,
+      organizerId: organizerProfile.id,
+    });
+
+    if (chatService) {
+      await chatService.ensureOrganizerRoomForEvent(event.id!);
+    }
+
+    res.status(201).json(event);
+  });
 
   if (authMiddleware) {
     router.post("/", authMiddleware, upload.array("images", 5), createHandler);
@@ -216,60 +183,47 @@ export function createEventRouter(
   }
 
   // Update event - only organizer or admin can update
-  const updateHandler = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const { id } = req.params as { id: string };
-      const userId = req.user?.userId;
-      const isAdmin = hasRole(req, ["ADMIN"]);
+  const updateHandler = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    const userId = getUserId(req);
+    const isAdmin = hasRole(req as AuthenticatedRequest, ["ADMIN"]);
 
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
+    // Get event to check ownership
+    const event = await eventService.getEvent(id);
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
 
-      // Get event to check ownership
-      const event = await eventService.getEvent(id);
-      if (!event) {
-        return res.status(404).json({ error: "Event not found" });
-      }
+    // Check if user is the organizer or admin
+    let isOwner = false;
+    if (event.organizerId && organizerService) {
+      const organizer = await organizerService.getProfileById(
+        event.organizerId,
+      );
+      isOwner = organizer?.userId === userId;
+    }
 
-      // Check if user is the organizer or admin
-      let isOwner = false;
-      if (event.organizerId && organizerService) {
-        const organizer = await organizerService.getProfileById(
-          event.organizerId,
-        );
-        isOwner = organizer?.userId === userId;
-      }
-
-      if (!isOwner && !isAdmin) {
-        return res.status(403).json({
-          error: "You can only update your own events",
-        });
-      }
-
-      const { title, description, date, location, capacity, price, mood } =
-        req.body;
-
-      const updatedEvent = await eventService.updateEvent(id, {
-        title,
-        description,
-        date,
-        location,
-        capacity,
-        price,
-        mood,
-      });
-
-      res.status(200).json(updatedEvent);
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("not found")) {
-        return res.status(404).json({ error: error.message });
-      }
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        error: "You can only update your own events",
       });
     }
-  };
+
+    const { title, description, date, location, capacity, price, mood } =
+      req.body;
+
+    const updatedEvent = await eventService.updateEvent(id, {
+      title,
+      description,
+      date,
+      location,
+      capacity,
+      price,
+      mood,
+    });
+
+    res.status(200).json(updatedEvent);
+  });
 
   if (authMiddleware) {
     router.patch("/:id", authMiddleware, updateHandler);
@@ -278,48 +232,35 @@ export function createEventRouter(
   }
 
   // Delete event - only organizer or admin can delete
-  const deleteHandler = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const { id } = req.params as { id: string };
-      const userId = req.user?.userId;
-      const isAdmin = hasRole(req, ["ADMIN"]);
+  const deleteHandler = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    const userId = getUserId(req);
+    const isAdmin = hasRole(req as AuthenticatedRequest, ["ADMIN"]);
 
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
+    // Get event to check ownership
+    const event = await eventService.getEvent(id);
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
 
-      // Get event to check ownership
-      const event = await eventService.getEvent(id);
-      if (!event) {
-        return res.status(404).json({ error: "Event not found" });
-      }
+    // Check if user is the organizer or admin
+    let isOwner = false;
+    if (event.organizerId && organizerService) {
+      const organizer = await organizerService.getProfileById(
+        event.organizerId,
+      );
+      isOwner = organizer?.userId === userId;
+    }
 
-      // Check if user is the organizer or admin
-      let isOwner = false;
-      if (event.organizerId && organizerService) {
-        const organizer = await organizerService.getProfileById(
-          event.organizerId,
-        );
-        isOwner = organizer?.userId === userId;
-      }
-
-      if (!isOwner && !isAdmin) {
-        return res.status(403).json({
-          error: "You can only delete your own events",
-        });
-      }
-
-      await eventService.deleteEvent(id);
-      res.status(200).json({ message: "Event deleted successfully" });
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("not found")) {
-        return res.status(404).json({ error: error.message });
-      }
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        error: "You can only delete your own events",
       });
     }
-  };
+
+    await eventService.deleteEvent(id);
+    res.status(200).json({ message: "Event deleted successfully" });
+  });
 
   if (authMiddleware) {
     router.delete("/:id", authMiddleware, deleteHandler);

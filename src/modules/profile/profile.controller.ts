@@ -1,9 +1,11 @@
-import { Router, Response } from "express";
+import { Router, Request, Response } from "express";
 import multer from "multer";
 import { ProfileService } from "./profile.service.js";
-import { AuthenticatedRequest } from "../auth/auth.middleware.js";
 import { UserProfile } from "./profile.entity.js";
 import { uploadImageBuffer } from "../utils/cloudinary.js";
+import { AuthenticatedRequest } from "../auth/auth.middleware.js";
+import { asyncHandler, getUserId } from "../../shared/http.js";
+import { ValidationError } from "../../shared/errors.js";
 
 // Configure multer for file uploads (memory storage)
 const storage = multer.memoryStorage();
@@ -34,78 +36,92 @@ function profileToResponse(profile: UserProfile | null, email?: string) {
   };
 }
 
+// Upload the request's profile picture (if any) and return its URL.
+// A failed upload surfaces as a 400 (ValidationError), matching prior behavior.
+async function uploadProfilePicture(
+  req: Request,
+): Promise<string | undefined> {
+  if (!req.file) return undefined;
+  try {
+    const uploadResult = await uploadImageBuffer(req.file.buffer, {
+      folder: "tripnest/profiles",
+      resource_type: "auto",
+    });
+    return uploadResult.secure_url;
+  } catch (uploadError) {
+    throw new ValidationError(
+      uploadError instanceof Error
+        ? uploadError.message
+        : "Failed to upload image",
+    );
+  }
+}
+
 export function createProfileRouter(profileService: ProfileService): Router {
   const router = Router();
 
   // Get current user's profile
-  router.get("/me", async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const userId = req.user?.userId;
-      const email = req.user?.email;
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
+  router.get(
+    "/me",
+    asyncHandler(async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      const email = (req as AuthenticatedRequest).user?.email;
       const profile = await profileService.getProfileByUserId(userId);
       res.status(200).json(profileToResponse(profile, email));
-    } catch (error) {
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   // Get profile by ID
-  router.get("/:id", async (req: AuthenticatedRequest, res: Response) => {
-    try {
+  router.get(
+    "/:id",
+    asyncHandler(async (req: Request, res: Response) => {
       const { id } = req.params as { id: string };
-      const email = req.user?.email;
+      const email = (req as AuthenticatedRequest).user?.email;
       const profile = await profileService.getProfileById(id);
       if (!profile) {
         return res.status(404).json({ error: "Profile not found" });
       }
       res.status(200).json(profileToResponse(profile, email));
-    } catch (error) {
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
+    }),
+  );
 
   // Create profile
   router.post(
     "/",
     upload.single("profilePicture"),
-    async (req: AuthenticatedRequest, res: Response) => {
-      try {
-        const userId = req.user?.userId;
-        const email = req.user?.email;
-        if (!userId) {
-          return res.status(401).json({ error: "Unauthorized" });
-        }
+    asyncHandler(async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      const email = (req as AuthenticatedRequest).user?.email;
+      const { fullName, phone, dateOfBirth, gender } = req.body;
+      const profilePictureUrl = await uploadProfilePicture(req);
 
-        const { fullName, phone, dateOfBirth, gender } = req.body;
-        let profilePictureUrl = undefined;
+      const profile = await profileService.createProfile(
+        userId,
+        fullName,
+        phone,
+        dateOfBirth ? new Date(dateOfBirth) : undefined,
+        gender,
+        profilePictureUrl,
+      );
+      res.status(201).json(profileToResponse(profile, email));
+    }),
+  );
 
-        // Upload image to Cloudinary if provided
-        if (req.file) {
-          try {
-            const uploadResult = await uploadImageBuffer(req.file.buffer, {
-              folder: "tripnest/profiles",
-              resource_type: "auto",
-            });
-            profilePictureUrl = uploadResult.secure_url;
-          } catch (uploadError) {
-            return res.status(400).json({
-              error:
-                uploadError instanceof Error
-                  ? uploadError.message
-                  : "Failed to upload image",
-            });
-          }
-        }
+  // Update current user's profile (must be before /:id route)
+  router.patch(
+    "/me",
+    upload.single("profilePicture"),
+    asyncHandler(async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      const email = (req as AuthenticatedRequest).user?.email;
+      const { fullName, phone, dateOfBirth, gender } = req.body;
+      const profilePictureUrl = await uploadProfilePicture(req);
 
-        const profile = await profileService.createProfile(
+      const existingProfile = await profileService.getProfileByUserId(userId);
+
+      // If profile has no ID, it's a default profile (not created yet), so create it
+      if (!existingProfile.id) {
+        const newProfile = await profileService.createProfile(
           userId,
           fullName,
           phone,
@@ -113,153 +129,56 @@ export function createProfileRouter(profileService: ProfileService): Router {
           gender,
           profilePictureUrl,
         );
-        res.status(201).json(profileToResponse(profile, email));
-      } catch (error) {
-        res.status(400).json({
-          error: error instanceof Error ? error.message : "Internal error",
-        });
+        return res.status(201).json(profileToResponse(newProfile, email));
       }
-    },
-  );
 
-  // Update current user's profile (must be before /:id route)
-  router.patch(
-    "/me",
-    upload.single("profilePicture"),
-    async (req: AuthenticatedRequest, res: Response) => {
-      try {
-        const userId = req.user?.userId;
-        const email = req.user?.email;
-        if (!userId) {
-          return res.status(401).json({ error: "Unauthorized" });
-        }
-
-        const { fullName, phone, dateOfBirth, gender } = req.body;
-        let profilePictureUrl = undefined;
-
-        // Upload image to Cloudinary if provided
-        if (req.file) {
-          try {
-            const uploadResult = await uploadImageBuffer(req.file.buffer, {
-              folder: "tripnest/profiles",
-              resource_type: "auto",
-            });
-            profilePictureUrl = uploadResult.secure_url;
-          } catch (uploadError) {
-            return res.status(400).json({
-              error:
-                uploadError instanceof Error
-                  ? uploadError.message
-                  : "Failed to upload image",
-            });
-          }
-        }
-
-        const existingProfile = await profileService.getProfileByUserId(userId);
-
-        // If profile has no ID, it's a default profile (not created yet), so create it
-        if (!existingProfile.id) {
-          const newProfile = await profileService.createProfile(
-            userId,
-            fullName,
-            phone,
-            dateOfBirth ? new Date(dateOfBirth) : undefined,
-            gender,
-            profilePictureUrl,
-          );
-          return res.status(201).json(profileToResponse(newProfile, email));
-        }
-
-        // Otherwise, update existing profile
-        const profile = await profileService.updateProfile(
-          existingProfile.id,
-          fullName,
-          phone,
-          dateOfBirth ? new Date(dateOfBirth) : undefined,
-          gender,
-          profilePictureUrl,
-        );
-        res.status(200).json(profileToResponse(profile, email));
-      } catch (error) {
-        res.status(400).json({
-          error: error instanceof Error ? error.message : "Internal error",
-        });
-      }
-    },
+      // Otherwise, update existing profile
+      const profile = await profileService.updateProfile(
+        existingProfile.id,
+        fullName,
+        phone,
+        dateOfBirth ? new Date(dateOfBirth) : undefined,
+        gender,
+        profilePictureUrl,
+      );
+      res.status(200).json(profileToResponse(profile, email));
+    }),
   );
 
   // Update profile
   router.patch(
     "/:id",
     upload.single("profilePicture"),
-    async (req: AuthenticatedRequest, res: Response) => {
-      try {
-        const { id } = req.params as { id: string };
-        const email = req.user?.email;
-        const { fullName, phone, dateOfBirth, gender } = req.body;
-        let profilePictureUrl = undefined;
+    asyncHandler(async (req: Request, res: Response) => {
+      const { id } = req.params as { id: string };
+      const email = (req as AuthenticatedRequest).user?.email;
+      const { fullName, phone, dateOfBirth, gender } = req.body;
+      const profilePictureUrl = await uploadProfilePicture(req);
 
-        // Upload image to Cloudinary if provided
-        if (req.file) {
-          try {
-            const uploadResult = await uploadImageBuffer(req.file.buffer, {
-              folder: "tripnest/profiles",
-              resource_type: "auto",
-            });
-            profilePictureUrl = uploadResult.secure_url;
-          } catch (uploadError) {
-            return res.status(400).json({
-              error:
-                uploadError instanceof Error
-                  ? uploadError.message
-                  : "Failed to upload image",
-            });
-          }
-        }
-
-        const profile = await profileService.updateProfile(
-          id,
-          fullName,
-          phone,
-          dateOfBirth ? new Date(dateOfBirth) : undefined,
-          gender,
-          profilePictureUrl,
-        );
-        res.status(200).json(profileToResponse(profile, email));
-      } catch (error) {
-        if (error instanceof Error && error.message.includes("not found")) {
-          return res.status(404).json({
-            error: error.message,
-          });
-        }
-        res.status(400).json({
-          error: error instanceof Error ? error.message : "Internal error",
-        });
-      }
-    },
+      const profile = await profileService.updateProfile(
+        id,
+        fullName,
+        phone,
+        dateOfBirth ? new Date(dateOfBirth) : undefined,
+        gender,
+        profilePictureUrl,
+      );
+      res.status(200).json(profileToResponse(profile, email));
+    }),
   );
 
   // Delete profile
-  router.delete("/:id", async (req: AuthenticatedRequest, res: Response) => {
-    try {
+  router.delete(
+    "/:id",
+    asyncHandler(async (req: Request, res: Response) => {
       const { id } = req.params as { id: string };
       const deleted = await profileService.deleteProfile(id);
       if (!deleted) {
         return res.status(404).json({ error: "Profile not found" });
       }
       res.status(200).json({ message: "Profile deleted successfully" });
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("not found")) {
-        return res.status(404).json({
-          error: error.message,
-        });
-      }
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
-  });
-  
+    }),
+  );
 
   return router;
 }

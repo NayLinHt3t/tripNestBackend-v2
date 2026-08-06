@@ -2,6 +2,11 @@ import { SentimentJobRepository } from "./sentiment.repository.js";
 import { SentimentAnalyzer } from "./sentiment.analyzer.js";
 import { SentimentAnalysisResult, SentimentJob } from "./sentiment.entity.js";
 import { PrismaClient } from "../database/prisma.js";
+import {
+  ValidationError,
+  NotFoundError,
+  ForbiddenError,
+} from "../../shared/errors.js";
 
 export class SentimentService {
   constructor(
@@ -57,7 +62,7 @@ export class SentimentService {
 
   async analyzeReview(reviewId: string): Promise<SentimentAnalysisResult> {
     if (!reviewId) {
-      throw new Error("Review ID is required");
+      throw new ValidationError("Review ID is required");
     }
 
     const review = await this.prisma.review.findUnique({
@@ -69,7 +74,7 @@ export class SentimentService {
     });
 
     if (!review) {
-      throw new Error("Review not found");
+      throw new NotFoundError("Review not found");
     }
 
     const result = await this.sentimentAnalyzer.analyze(review.comment || "");
@@ -129,10 +134,10 @@ export class SentimentService {
     averageScore: number | null;
   }> {
     if (!organizerId) {
-      throw new Error("Organizer ID is required");
+      throw new ValidationError("Organizer ID is required");
     }
     if (!eventId) {
-      throw new Error("Event ID is required");
+      throw new ValidationError("Event ID is required");
     }
 
     await this.assertOrganizerOwnsEvent(organizerId, eventId);
@@ -187,10 +192,10 @@ export class SentimentService {
     }[]
   > {
     if (!organizerId) {
-      throw new Error("Organizer ID is required");
+      throw new ValidationError("Organizer ID is required");
     }
     if (!eventId) {
-      throw new Error("Event ID is required");
+      throw new ValidationError("Event ID is required");
     }
 
     await this.assertOrganizerOwnsEvent(organizerId, eventId);
@@ -313,11 +318,11 @@ export class SentimentService {
     });
 
     if (!event) {
-      throw new Error("Event not found");
+      throw new NotFoundError("Event not found");
     }
 
     if (!event.organizerId || event.organizerId !== organizerId) {
-      throw new Error("Forbidden");
+      throw new ForbiddenError("Forbidden");
     }
   }
 }

@@ -3,6 +3,7 @@ import { AdminAction, AdminStats, ModerationAction } from "./admin.entity.js";
 import { ApprovalStatus } from "../organizer/organizer.entity.js";
 import { OrganizerService } from "../organizer/organizer.service.js";
 import { EventService } from "../event/event.service.js";
+import { ValidationError, NotFoundError } from "../../shared/errors.js";
 
 export class AdminService {
   constructor(
@@ -127,11 +128,11 @@ export class AdminService {
     });
 
     if (!event) {
-      throw new Error("Event not found");
+      throw new NotFoundError("Event not found");
     }
 
     if (event.status === "CANCELLED") {
-      throw new Error("Event is already cancelled");
+      throw new ValidationError("Event is already cancelled");
     }
 
     const cancelled = await this.prisma.event.update({
@@ -168,7 +169,7 @@ export class AdminService {
     });
 
     if (!event) {
-      throw new Error("Event not found");
+      throw new NotFoundError("Event not found");
     }
 
     // Check for confirmed bookings
@@ -177,7 +178,7 @@ export class AdminService {
     );
 
     if (confirmedBookings.length > 0) {
-      throw new Error(
+      throw new ValidationError(
         `Cannot delete event with ${confirmedBookings.length} confirmed bookings. Processing refunds would be required.`,
       );
     }
@@ -208,7 +209,7 @@ export class AdminService {
     });
 
     if (!review) {
-      throw new Error("Review not found");
+      throw new NotFoundError("Review not found");
     }
 
     await this.logModerationAction({
@@ -276,7 +277,7 @@ export class AdminService {
    */
   async getOrganizerDetail(organizerId: string): Promise<any> {
     if (!organizerId) {
-      throw new Error("Organizer ID is required");
+      throw new ValidationError("Organizer ID is required");
     }
 
     const organizer = await this.prisma.organizerProfile.findUnique({
@@ -317,7 +318,7 @@ export class AdminService {
     });
 
     if (!organizer) {
-      throw new Error("Organizer not found");
+      throw new NotFoundError("Organizer not found");
     }
 
     const moderationLogs = await this.prisma.moderationLog.findMany({
@@ -342,7 +343,7 @@ export class AdminService {
    */
   async getEventDetail(eventId: string): Promise<any> {
     if (!eventId) {
-      throw new Error("Event ID is required");
+      throw new ValidationError("Event ID is required");
     }
 
     const event = await this.prisma.event.findUnique({
@@ -384,7 +385,7 @@ export class AdminService {
     });
 
     if (!event) {
-      throw new Error("Event not found");
+      throw new NotFoundError("Event not found");
     }
 
     const moderationLogs = await this.prisma.moderationLog.findMany({

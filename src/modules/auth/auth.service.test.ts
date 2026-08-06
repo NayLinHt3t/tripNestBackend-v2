@@ -65,6 +65,14 @@ describe("AuthService", () => {
       ).rejects.toThrow("User with this email already exists");
     });
 
+    it("throws a ConflictError (409) when email is already taken", async () => {
+      vi.mocked(repo.findByEmail).mockResolvedValue(makeUser());
+
+      await expect(
+        service.register("alice@example.com", "pass", "Alice"),
+      ).rejects.toMatchObject({ name: "ConflictError", statusCode: 409 });
+    });
+
     it("throws when repository is not configured", async () => {
       const bare = new AuthService();
 
@@ -95,6 +103,14 @@ describe("AuthService", () => {
       await expect(service.login("ghost@example.com", "pass")).rejects.toThrow(
         "Invalid email or password",
       );
+    });
+
+    it("throws an UnauthorizedError (401) for invalid credentials", async () => {
+      vi.mocked(repo.findByEmail).mockResolvedValue(null);
+
+      await expect(
+        service.login("ghost@example.com", "pass"),
+      ).rejects.toMatchObject({ name: "UnauthorizedError", statusCode: 401 });
     });
 
     it("throws for a wrong password", async () => {

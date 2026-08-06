@@ -149,6 +149,15 @@ describe("BookingService", () => {
       await expect(service.confirmBooking("ghost")).rejects.toThrow("Booking not found");
     });
 
+    it("throws a NotFoundError (404) when booking is not found", async () => {
+      vi.mocked(repo.findById).mockResolvedValue(null);
+
+      await expect(service.confirmBooking("ghost")).rejects.toMatchObject({
+        name: "NotFoundError",
+        statusCode: 404,
+      });
+    });
+
     it("throws when id is empty", async () => {
       await expect(service.confirmBooking("")).rejects.toThrow("Booking ID is required");
     });

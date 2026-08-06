@@ -39,6 +39,9 @@ TABLE OF CONTENTS
 src/
   index.ts                  -- Express app bootstrap & dependency injection
   server.ts                 -- HTTP server + Socket.io initialization
+  shared/                   -- Cross-cutting infrastructure (NOT domain logic)
+    errors.ts               -- Typed domain error hierarchy (see Section 13)
+    http.ts                 -- asyncHandler, sendError, getUserId helpers
   modules/
     <feature>/              -- One directory per domain feature
       <feature>.entity.ts
@@ -67,6 +70,8 @@ Rules:
   - Cross-module dependencies are injected, never imported directly from another
     module's internal files
   - Utilities (cloudinary, email) live in src/modules/utils/
+  - Cross-cutting infrastructure with no domain knowledge (error types, HTTP
+    helpers) lives in src/shared/ and may be imported by any layer
 
 
 ================================================================================
@@ -953,45 +958,38 @@ LAYER 5 — CONTROLLER  ({feature}.controller.ts)
 
   HOW? Export a factory function named create{Feature}Router that receives the
   service as an argument and returns an Express Router. Every route handler is
-  async and wrapped in try/catch. Errors from the service are inspected with
-  error.message.includes() to pick the right HTTP status code.
+  wrapped in `asyncHandler` (src/shared/http.ts) so thrown errors are routed to
+  a response automatically — no try/catch and no message inspection. The typed
+  error thrown by the service carries the status code (see Section 13).
 
   Real example — booking.controller.ts:
+    import { asyncHandler, getUserId } from "../../shared/http.js";
+
     export function createBookingRouter(bookingService: BookingService): Router {
       const router = Router();
 
       // GET /bookings/:id
-      router.get("/:id", async (req: AuthenticatedRequest, res: Response) => {
-        try {
+      router.get(
+        "/:id",
+        asyncHandler(async (req, res) => {
           const { id } = req.params as { id: string };
           const booking = await bookingService.getBooking(id);
-          res.status(200).json(booking);
-        } catch (error) {
-          // Check the error message to choose the right status code
-          if (error instanceof Error && error.message.includes("not found")) {
-            return res.status(404).json({ error: error.message });
-          }
-          res.status(400).json({
-            error: error instanceof Error ? error.message : "Internal error",
-          });
-        }
-      });
+          res.status(200).json(booking);   // NotFoundError -> 404 automatically
+        }),
+      );
 
       // POST /bookings
-      router.post("/", async (req: AuthenticatedRequest, res: Response) => {
-        try {
+      router.post(
+        "/",
+        asyncHandler(async (req, res) => {
+          const userId = getUserId(req);   // throws UnauthorizedError if missing
           const { eventId, ticketCounts } = req.body;
-          const userId = req.user?.userId;
           const result = await bookingService.createBooking(
-            userId || "", eventId, ticketCounts,
+            userId, eventId, ticketCounts,
           );
           res.status(201).json(result);
-        } catch (error) {
-          res.status(400).json({
-            error: error instanceof Error ? error.message : "Internal error",
-          });
-        }
-      });
+        }),
+      );
 
       return router;
     }
@@ -1065,7 +1063,7 @@ OTHER RULES
   - Signature: create{Feature}Router(service: {Feature}Service): Router
   - Use express.Router(), not app.get() / app.post() directly
   - All route handlers must be async
-  - Wrap every handler in try/catch — never let unhandled rejections propagate
+  - Wrap every handler in `asyncHandler` — never let unhandled rejections propagate
 
 WHY factory functions instead of a class?
   A class-based controller requires instantiation and "this" binding. A factory
@@ -1076,19 +1074,22 @@ WHY factory functions instead of a class?
     app.use("/api/bookings", authMiddleware, createBookingRouter(bookingService));
 
 ERROR → STATUS CODE MAPPING
-  The controller checks the service error message to decide which HTTP code to
-  use. This is intentional: the service throws plain Errors with human-readable
-  messages; the controller reads those messages to route to the right code.
+  The service throws a typed error (see Section 13) that carries its own status
+  code. The controller does not inspect messages; it wraps handlers in
+  `asyncHandler`, which routes any thrown error through `sendError`.
 
   Pattern used throughout the codebase:
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("not found")) {
-        return res.status(404).json({ error: error.message });
-      }
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Internal error",
-      });
-    }
+    import { asyncHandler, getUserId } from "../../shared/http.js";
+
+    router.get(
+      "/:id",
+      asyncHandler(async (req, res) => {
+        const booking = await bookingService.getBooking(req.params.id);
+        res.status(200).json(booking);
+      }),
+    );
+    // A NotFoundError thrown by the service becomes 404; a ValidationError
+    // becomes 400; an unexpected error becomes 500 — no per-handler mapping.
 
 HTTP STATUS CODES
   200  Success (GET, PUT/PATCH that returns updated data)
@@ -1307,22 +1308,49 @@ CURRENT LIMITATIONS (to fix before production)
 ================================================================================
 
 The pattern follows a strict division of responsibility:
-  Services THROW.  Controllers CATCH and translate.
+  Services THROW typed errors.  Controllers let a shared helper translate them.
 
 WHY this split?
   Services do not know whether they are called from an HTTP handler, a
   background job, or a test. Returning an HTTP status code from a service
-  would couple it to HTTP. By throwing plain Errors, the service stays
-  transport-agnostic, and the controller decides what status code fits.
+  would couple it to HTTP. Instead, services throw a typed domain error that
+  CARRIES its own status code, and the controller layer maps the error to a
+  response by TYPE — never by matching on the message text.
+
+WHY typed errors instead of message matching?
+  The old approach inspected error.message.includes("not found") in every
+  controller to pick a status code. That coupled the HTTP status to the exact
+  wording of a message: renaming "Booking not found" to "No such booking"
+  would silently turn a 404 into a 400. Typed errors make the status a
+  property of the error, so it cannot drift when a message is reworded, and
+  a new module gets correct routing for free.
+
+THE ERROR TYPES  (src/shared/errors.ts)
+  All extend the abstract AppError, which carries a readonly statusCode:
+
+    ValidationError    -> 400   invalid input / violated business rule
+    UnauthorizedError  -> 401   not authenticated (bad credentials, bad token)
+    ForbiddenError     -> 403   authenticated but not allowed
+    NotFoundError      -> 404   resource does not exist
+    ConflictError      -> 409   conflicts with current state (duplicate, etc.)
+
+  Genuine INTERNAL failures (misconfiguration, "Prisma client not available")
+  stay as plain `throw new Error(...)`. The shared helper maps anything that
+  is not an AppError to 500 with a generic "Internal error" body, so internal
+  details and stack traces are never leaked.
 
 THROW IN SERVICES
-  Services throw new Error("descriptive message") for every failure case:
-  validation failures, not-found records, and business rule violations.
+  Pick the type that matches the failure. Messages stay user-facing.
 
   // booking.service.ts
-  if (!bookingId) throw new Error("Booking ID is required");
-  if (!booking) throw new Error("Booking not found");
-  if (event.status !== "CONFIRMED") throw new Error("Only confirmed events can be booked");
+  if (!bookingId) throw new ValidationError("Booking ID is required");
+  if (!booking) throw new NotFoundError("Booking not found");
+  if (event.status !== "CONFIRMED")
+    throw new ValidationError("Only confirmed events can be booked");
+
+  // auth.service.ts
+  if (existing) throw new ConflictError("User with this email already exists");
+  if (!valid) throw new UnauthorizedError("Invalid email or password");
 
 ERROR MESSAGE GUIDELINES
   Messages should be user-facing and descriptive. Contributors can read them
@@ -1335,27 +1363,30 @@ ERROR MESSAGE GUIDELINES
   BAD:   "Prisma constraint violation P2002"
 
 CATCH IN CONTROLLERS
-  Inspect the error message with .includes() to route to the right status code.
-  Fall back to 400 for generic validation errors. Always type-guard the error.
+  Controllers do not write try/catch or inspect messages. Wrap each handler in
+  `asyncHandler` (src/shared/http.ts): any thrown error is routed through
+  `sendError`, which reads statusCode off the AppError (or 500 for anything
+  else). Read the authenticated user with `getUserId(req)`, which throws
+  UnauthorizedError when absent.
 
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("not found")) {
-      return res.status(404).json({ error: error.message });
-    }
-    if (error instanceof Error && error.message.includes("already exists")) {
-      return res.status(409).json({ error: error.message });
-    }
-    res.status(400).json({
-      error: error instanceof Error ? error.message : "Internal error",
-    });
-  }
+  import { asyncHandler, getUserId } from "../../shared/http.js";
+
+  router.get(
+    "/:id",
+    asyncHandler(async (req, res) => {
+      const booking = await bookingService.getBooking(req.params.id);
+      res.status(200).json(booking);   // NotFoundError -> 404 automatically
+    }),
+  );
 
   Never use: catch (error) {} (silent swallow)
   Never use: res.json({ error: error.stack }) (exposes internals)
+  Never use: error.message.includes("...") to choose a status code
 
 ASYNC ERRORS
-  All async route handlers must be wrapped in try/catch. Never rely on
-  Express's default unhandled-rejection behavior.
+  Every async route handler must be wrapped in `asyncHandler` so a rejected
+  promise becomes an error response instead of an unhandled rejection. Do not
+  rely on Express's default unhandled-rejection behavior.
 
 
 ================================================================================
