@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/server.ts",
-    "build": "tsc",
+    "build": "tsc && cp -r docs dist/docs",
     "start": "node dist/src/server.js",
     "test": "vitest",
     "test:run": "vitest run",
