@@ -512,12 +512,9 @@ export class AdminService {
     const eventIds = logs
       .filter((log) => log.entityType === "EVENT")
       .map((log) => log.entityId);
-    const userIds = logs
-      .filter((log) => log.entityType === "USER")
-      .map((log) => log.entityId);
     const adminIds = [...new Set(logs.map((log) => log.adminId))];
 
-    const [organizers, events, users, admins] = await Promise.all([
+    const [organizers, events, admins] = await Promise.all([
       organizerIds.length
         ? this.prisma.organizerProfile.findMany({
             where: { id: { in: organizerIds } },
@@ -528,12 +525,6 @@ export class AdminService {
         ? this.prisma.event.findMany({
             where: { id: { in: eventIds } },
             select: { id: true, title: true },
-          })
-        : [],
-      userIds.length
-        ? this.prisma.user.findMany({
-            where: { id: { in: userIds } },
-            select: { id: true, name: true },
           })
         : [],
       adminIds.length
@@ -548,7 +539,6 @@ export class AdminService {
       organizers.map((org) => [org.id, org.organizationName]),
     );
     const eventNameById = new Map(events.map((event) => [event.id, event.title]));
-    const userNameById = new Map(users.map((user) => [user.id, user.name]));
     const adminNameById = new Map(
       admins.map((admin) => [admin.id, admin.name || admin.email]),
     );
@@ -559,9 +549,7 @@ export class AdminService {
           ? (organizerNameById.get(log.entityId) ?? null)
           : log.entityType === "EVENT"
             ? (eventNameById.get(log.entityId) ?? null)
-            : log.entityType === "USER"
-              ? (userNameById.get(log.entityId) ?? null)
-              : null;
+            : null;
 
       return {
         ...log,
