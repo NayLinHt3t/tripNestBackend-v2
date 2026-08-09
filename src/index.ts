@@ -48,6 +48,7 @@ const app = express();
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   process.env.ADMIN_DASHBOARD_URL,
+  "https://trip-nest-admin.vercel.app",
   "http://localhost:5173",
   "http://localhost:3000",
 ]
