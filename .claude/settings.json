@@ -1,0 +1,53 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(rm -f /tmp/dryrun2.txt)",
+      "Bash(npm ls *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(list\\(d.get\\('dependencies',{}\\).keys\\(\\)\\)\\)\")",
+      "Bash(rm -rf /private/tmp/claude-501/-Users-naylin-workspace-tripNest/67dea70c-598b-4ae2-a258-a8f27747f1a3/scratchpad/render-sim)",
+      "Bash(mkdir -p /private/tmp/claude-501/-Users-naylin-workspace-tripNest/67dea70c-598b-4ae2-a258-a8f27747f1a3/scratchpad/render-sim)",
+      "Bash(cp package.json package-lock.json prisma.config.ts /private/tmp/claude-501/-Users-naylin-workspace-tripNest/67dea70c-598b-4ae2-a258-a8f27747f1a3/scratchpad/render-sim/)",
+      "Bash(cp -r prisma /private/tmp/claude-501/-Users-naylin-workspace-tripNest/67dea70c-598b-4ae2-a258-a8f27747f1a3/scratchpad/render-sim/)",
+      "Bash(grep -E \"^prisma$|^tsx$\")",
+      "Bash(npx prisma *)",
+      "Bash(curl -s -o /dev/null -w \"Server status: %{http_code}\\\\n\" http://localhost:3000/ --max-time 5)",
+      "Bash(curl -s -X POST http://localhost:3000/api/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"admin@tripnest.local\",\"password\":\"AdminPass!2026\",\"name\":\"Admin User\"}' -w '\\\\nHTTP status: %{http_code}\\\\n')",
+      "Bash(curl -s -X POST http://localhost:3000/api/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"creator@tripnest.local\",\"password\":\"Creator!2026Pass\",\"name\":\"Creator User\"}' -w '\\\\nHTTP status: %{http_code}\\\\n')",
+      "Bash(npx tsx *)",
+      "Bash(curl -s -X POST http://localhost:3000/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"creator@tripnest.local\",\"password\":\"Creator!2026Pass\"}')",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('roles:', d['roles']\\)\")",
+      "Bash(find /Users/naylin/workspace/tripNest -maxdepth 3 -iname \"*dashboard*\" -not -path \"*/node_modules/*\" -not -path \"*/src/*\" *)",
+      "Read(//Users/naylin/workspace/**)",
+      "Bash(curl -s -X POST https://tripnestbackend-v2.onrender.com/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"admin@tripnest.local\",\"password\":\"AdminPass!2026\"}' -w '\\\\nHTTP status: %{http_code}\\\\n' --max-time 20)",
+      "Bash(curl -s -i -X OPTIONS https://tripnestbackend-v2.onrender.com/api/auth/login -H 'Origin: http://localhost:5173' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: Content-Type' --max-time 20)",
+      "Bash(curl -s -i -X POST https://tripnestbackend-v2.onrender.com/api/auth/login -H 'Origin: http://localhost:5173' -H 'Content-Type: application/json' -d '{\"email\":\"admin@tripnest.local\",\"password\":\"AdminPass!2026\"}' --max-time 20)",
+      "Bash(npx tsc *)",
+      "Bash(pkill -f \"tsx src/server.ts\")",
+      "Bash(nohup npm run dev)",
+      "Bash(curl -s -i -X POST http://localhost:3000/api/auth/login -H 'Origin: http://localhost:5173' -H 'Content-Type: application/json' -d '{\"email\":\"admin@tripnest.local\",\"password\":\"AdminPass!2026\"}' --max-time 10)",
+      "Bash(curl -s -o /dev/null -w \"Render root status: %{http_code}\\\\n\" https://tripnestbackend-v2.onrender.com/ --max-time 20)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git fetch *)",
+      "Bash(git checkout *)",
+      "Bash(git pull *)",
+      "Bash(git merge *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(git push *)",
+      "Bash(grep -n 'action: $Enums\\\\|action: string' generated/prisma/models/ModerationLog.ts)",
+      "Bash(pkill -f \"tsx src/server.ts\" 2>/dev/null *)",
+      "Bash(git restore *)",
+      "Bash(python3 -m json.tool)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(git -C /Users/naylin/workspace/tripNest_admin check-ignore -v .env.development.local)"
+    ],
+    "additionalDirectories": [
+      "/private/tmp",
+      "/Users/naylin/workspace/tripNest_admin/src/hooks",
+      "/Users/naylin/workspace/tripNest_admin/src/pages",
+      "/Users/naylin/workspace/tripNest_admin/src",
+      "/Users/naylin/workspace/tripNest_admin"
+    ]
+  }
+}
