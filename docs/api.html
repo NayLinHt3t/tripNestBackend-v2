@@ -396,8 +396,8 @@
 
         <h3>Token Expiration</h3>
         <p>
-          Tokens expire after <strong>24 hours</strong>. After expiration, users
-          must login again.
+          Tokens expire after <strong>7 days</strong>. After expiration, users
+          must login again. Logging out invalidates the token immediately (stored in the database).
         </p>
       </section>
 
@@ -456,7 +456,8 @@
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "userId": "clx1234567890",
   "email": "user@example.com",
-  "expiresIn": "24h",
+  "roles": ["USER"],
+  "expiresIn": "7d",
   "message": "Registration successful"
 }</pre
             >
@@ -516,7 +517,8 @@
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "userId": "clx1234567890",
   "email": "user@example.com",
-  "expiresIn": "24h",
+  "roles": ["USER"],
+  "expiresIn": "7d",
   "message": "Login successful"
 }</pre
             >
@@ -938,6 +940,62 @@
           </div>
         </div>
 
+        <!-- Get My Events -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/events/mine</span>
+            <span class="endpoint-desc">Get current organizer's own events</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Description</h4>
+            <p>Returns all events created by the authenticated organizer, including PENDING and CANCELLED events. Sorted by creation date descending. Requires the ORGANIZER role.</p>
+
+            <h4>Query Parameters</h4>
+            <table>
+              <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>limit</td>
+                <td>number</td>
+                <td class="optional">No</td>
+                <td>Maximum number of events to return</td>
+              </tr>
+            </table>
+
+            <h4>Success Response (200)</h4>
+            <pre>
+[
+  {
+    "id": "clx1234567890",
+    "title": "Summer Music Festival",
+    "description": "A three-day music festival",
+    "date": "2026-07-15T18:00:00.000Z",
+    "location": "Central Park, NYC",
+    "capacity": 5000,
+    "price": 99.99,
+    "status": "PENDING",
+    "organizerId": "org-uuid",
+    "images": [],
+    "createdAt": "2026-01-20T10:00:00.000Z"
+  }
+]</pre>
+
+            <h4>Error Responses</h4>
+            <pre>
+// 403 Forbidden
+{ "error": "Only organizer accounts can access this" }
+
+// 404 Not Found
+{ "error": "Organizer profile not found" }</pre>
+          </div>
+        </div>
+
         <!-- Get Event by ID -->
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
@@ -1337,6 +1395,9 @@
             <span class="auth-badge">Auth</span>
           </div>
           <div class="endpoint-body">
+            <h4>Description</h4>
+            <p>Returns a single booking. Only the owner of the booking can access it — a 403 is returned for any other user.</p>
+
             <h4>Path Parameters</h4>
             <table>
               <tr>
@@ -1357,13 +1418,21 @@
   "id": "clx1234567890",
   "userId": "clx0987654321",
   "eventId": "clx1111111111",
-  "ticketCount": 2,
+  "ticketCounts": 2,
+  "unitPrice": 99.99,
   "totalPrice": 199.98,
-  "status": "CONFIRMED",
+  "status": "PENDING",
   "createdAt": "2026-01-25T10:00:00.000Z",
   "updatedAt": "2026-01-25T10:00:00.000Z"
-}</pre
-            >
+}</pre>
+
+            <h4>Error Responses</h4>
+            <pre>
+// 403 Forbidden
+{ "error": "You do not have access to this booking" }
+
+// 404 Not Found
+{ "error": "Booking not found" }</pre>
           </div>
         </div>
 
@@ -1376,6 +1445,9 @@
             <span class="auth-badge">Auth</span>
           </div>
           <div class="endpoint-body">
+            <h4>Description</h4>
+            <p>Creates a booking with status <code class="inline-code">PENDING</code>. The booking must be confirmed by the organizer or admin before the user can access the event chat room. Capacity is checked atomically — if not enough tickets are available, a 400 is returned.</p>
+
             <h4>Request Body</h4>
             <table>
               <tr>
@@ -1388,13 +1460,13 @@
                 <td>eventId</td>
                 <td>string</td>
                 <td class="required">Yes</td>
-                <td>Event to book</td>
+                <td>ID of the event to book</td>
               </tr>
               <tr>
                 <td>ticketCounts</td>
                 <td>number</td>
                 <td class="required">Yes</td>
-                <td>Number of tickets</td>
+                <td>Number of tickets (must be &gt; 0)</td>
               </tr>
             </table>
 
@@ -1403,8 +1475,7 @@
 {
   "eventId": "clx1111111111",
   "ticketCounts": 2
-}</pre
-            >
+}</pre>
 
             <h4>Success Response (201)</h4>
             <pre>
@@ -1414,12 +1485,21 @@
     "userId": "clx0987654321",
     "eventId": "clx1111111111",
     "ticketCounts": 2,
+    "unitPrice": 99.99,
     "totalPrice": 199.98,
     "status": "PENDING"
-  },
-  "chatRoomId": "clxroom123456"
-}</pre
-            >
+  }
+}</pre>
+
+            <h4>Error Responses</h4>
+            <pre>
+// 400 Bad Request
+{ "error": "Only confirmed events can be booked" }
+{ "error": "Not enough tickets available" }
+{ "error": "Ticket count must be greater than 0" }
+
+// 404 Not Found
+{ "error": "Event not found" }</pre>
           </div>
         </div>
 
@@ -1428,21 +1508,36 @@
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method patch">PATCH</span>
             <span class="endpoint-path">/api/bookings/:id/confirm</span>
-            <span class="endpoint-desc">Confirm a booking</span>
+            <span class="endpoint-desc">Confirm a booking (organizer / admin only)</span>
             <span class="auth-badge">Auth</span>
           </div>
           <div class="endpoint-body">
             <h4>Description</h4>
-            <p>Changes booking status from PENDING to CONFIRMED.</p>
+            <p>Transitions booking status from <code class="inline-code">PENDING</code> to <code class="inline-code">CONFIRMED</code>. On confirmation the user is automatically added as a member of the event's chat room. Requires the <strong>ORGANIZER</strong> or <strong>ADMIN</strong> role.</p>
+
+            <div class="info-box warning">
+              <strong>Role Required:</strong> Only users with the ORGANIZER or ADMIN role can confirm bookings. Regular users cannot call this endpoint.
+            </div>
 
             <h4>Success Response (200)</h4>
             <pre>
 {
   "id": "clx1234567890",
-  "status": "CONFIRMED",
-  ...
-}</pre
-            >
+  "userId": "clx0987654321",
+  "eventId": "clx1111111111",
+  "ticketCounts": 2,
+  "unitPrice": 99.99,
+  "totalPrice": 199.98,
+  "status": "CONFIRMED"
+}</pre>
+
+            <h4>Error Responses</h4>
+            <pre>
+// 403 Forbidden
+{ "error": "Only organizers or admins can confirm bookings" }
+
+// 404 Not Found
+{ "error": "Booking not found" }</pre>
           </div>
         </div>
 
@@ -1456,16 +1551,25 @@
           </div>
           <div class="endpoint-body">
             <h4>Description</h4>
-            <p>Changes booking status to CANCELLED.</p>
+            <p>Sets booking status to <code class="inline-code">CANCELLED</code>. Only the owner of the booking can cancel it.</p>
 
             <h4>Success Response (200)</h4>
             <pre>
 {
   "id": "clx1234567890",
-  "status": "CANCELLED",
-  ...
-}</pre
-            >
+  "userId": "clx0987654321",
+  "eventId": "clx1111111111",
+  "ticketCounts": 2,
+  "status": "CANCELLED"
+}</pre>
+
+            <h4>Error Responses</h4>
+            <pre>
+// 403 Forbidden
+{ "error": "You do not have access to this booking" }
+
+// 404 Not Found
+{ "error": "Booking not found" }</pre>
           </div>
         </div>
 
@@ -1478,12 +1582,35 @@
             <span class="auth-badge">Auth</span>
           </div>
           <div class="endpoint-body">
+            <h4>Description</h4>
+            <p>Updates the number of tickets on an existing booking. Only the owner of the booking can update it. The new ticket count must be &gt; 0.</p>
+
             <h4>Request Body</h4>
             <pre>
 {
   "ticketCounts": 4
-}</pre
-            >
+}</pre>
+
+            <h4>Success Response (200)</h4>
+            <pre>
+{
+  "id": "clx1234567890",
+  "ticketCounts": 4,
+  "unitPrice": 99.99,
+  "totalPrice": 399.96,
+  "status": "PENDING"
+}</pre>
+
+            <h4>Error Responses</h4>
+            <pre>
+// 400 Bad Request
+{ "error": "Ticket count must be greater than 0" }
+
+// 403 Forbidden
+{ "error": "You do not have access to this booking" }
+
+// 404 Not Found
+{ "error": "Booking not found" }</pre>
           </div>
         </div>
       </section>
@@ -1498,8 +1625,7 @@
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method get">GET</span>
             <span class="endpoint-path">/api/reviews/event/:eventId</span>
-            <span class="endpoint-desc">Get reviews for an event</span>
-            <span class="auth-badge">Auth</span>
+            <span class="endpoint-desc">Get reviews for an event — public</span>
           </div>
           <div class="endpoint-body">
             <h4>Success Response (200)</h4>
@@ -1527,8 +1653,7 @@
             <span class="endpoint-path"
               >/api/reviews/event/:eventId/rating</span
             >
-            <span class="endpoint-desc">Get average rating for event</span>
-            <span class="auth-badge">Auth</span>
+            <span class="endpoint-desc">Get average rating for event — public</span>
           </div>
           <div class="endpoint-body">
             <h4>Success Response (200)</h4>
@@ -1560,8 +1685,7 @@
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
             <span class="method get">GET</span>
             <span class="endpoint-path">/api/reviews/:id</span>
-            <span class="endpoint-desc">Get review by ID</span>
-            <span class="auth-badge">Auth</span>
+            <span class="endpoint-desc">Get review by ID — public</span>
           </div>
           <div class="endpoint-body">
             <h4>Error Response (404)</h4>
