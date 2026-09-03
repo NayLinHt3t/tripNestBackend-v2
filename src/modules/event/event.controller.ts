@@ -9,7 +9,7 @@ import { asyncHandler, getUserId } from "../../shared/http.js";
 
 export function createEventRouter(
   eventService: EventService,
-  authMiddleware?: RequestHandler,
+  authMiddleware: RequestHandler,
   organizerService?: OrganizerService,
   chatService?: ChatService,
 ): Router {
@@ -94,6 +94,43 @@ export function createEventRouter(
     }),
   );
 
+  // Get the current organizer's own events (latest created first, all
+  // statuses so they can see pending/unapproved events too).
+  // Registered before "/:id" so "mine" is not treated as an event id.
+  const myEventsHandler = asyncHandler(
+    async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      if (!hasRole(req as AuthenticatedRequest, ["ORGANIZER"])) {
+        return res.status(403).json({
+          error: "Only organizer accounts can view their events",
+        });
+      }
+      if (!organizerService) {
+        return res.status(500).json({ error: "Organizer service unavailable" });
+      }
+
+      const organizerProfile =
+        await organizerService.getProfileByUserId(userId);
+      if (!organizerProfile || !organizerProfile.id) {
+        return res.status(404).json({ error: "Organizer profile not found" });
+      }
+
+      const events = await eventService.getEventsByOrganizer(
+        organizerProfile.id,
+      );
+
+      const limitRaw = req.query.limit;
+      const limit =
+        typeof limitRaw === "string" && Number(limitRaw) > 0
+          ? Number(limitRaw)
+          : undefined;
+
+      res.status(200).json(limit ? events.slice(0, limit) : events);
+    },
+  );
+
+  router.get("/mine", authMiddleware, myEventsHandler);
+
   // Get event by ID
   router.get(
     "/:id",
@@ -176,11 +213,7 @@ export function createEventRouter(
     res.status(201).json(event);
   });
 
-  if (authMiddleware) {
-    router.post("/", authMiddleware, upload.array("images", 5), createHandler);
-  } else {
-    router.post("/", upload.array("images", 5), createHandler);
-  }
+  router.post("/", authMiddleware, upload.array("images", 5), createHandler);
 
   // Update event - only organizer or admin can update
   const updateHandler = asyncHandler(async (req: Request, res: Response) => {
@@ -225,11 +258,7 @@ export function createEventRouter(
     res.status(200).json(updatedEvent);
   });
 
-  if (authMiddleware) {
-    router.patch("/:id", authMiddleware, updateHandler);
-  } else {
-    router.patch("/:id", updateHandler);
-  }
+  router.patch("/:id", authMiddleware, updateHandler);
 
   // Delete event - only organizer or admin can delete
   const deleteHandler = asyncHandler(async (req: Request, res: Response) => {
@@ -262,11 +291,7 @@ export function createEventRouter(
     res.status(200).json({ message: "Event deleted successfully" });
   });
 
-  if (authMiddleware) {
-    router.delete("/:id", authMiddleware, deleteHandler);
-  } else {
-    router.delete("/:id", deleteHandler);
-  }
+  router.delete("/:id", authMiddleware, deleteHandler);
 
   return router;
 }

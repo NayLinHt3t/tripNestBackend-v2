@@ -220,3 +220,15 @@ enum ApprovalStatus {
   APPROVED
   REJECTED
 }
+
+model InvalidatedToken {
+  token     String   @id
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  token     String   @id
+  email     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}

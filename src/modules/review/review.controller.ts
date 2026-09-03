@@ -1,8 +1,11 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, RequestHandler } from "express";
 import { ReviewService } from "./review.service.js";
 import { asyncHandler, getUserId } from "../../shared/http.js";
 
-export function createReviewRouter(reviewService: ReviewService): Router {
+export function createReviewRouter(
+  reviewService: ReviewService,
+  authMiddleware: RequestHandler,
+): Router {
   const router = Router();
 
   // Get reviews by event (public)
@@ -28,6 +31,7 @@ export function createReviewRouter(reviewService: ReviewService): Router {
   // Get my reviews (authenticated)
   router.get(
     "/my",
+    authMiddleware,
     asyncHandler(async (req: Request, res: Response) => {
       const userId = getUserId(req);
       const reviews = await reviewService.getReviewsByUser(userId);
@@ -35,7 +39,7 @@ export function createReviewRouter(reviewService: ReviewService): Router {
     }),
   );
 
-  // Get review by ID
+  // Get review by ID (public)
   router.get(
     "/:id",
     asyncHandler(async (req: Request, res: Response) => {
@@ -53,6 +57,7 @@ export function createReviewRouter(reviewService: ReviewService): Router {
   // Create review (authenticated)
   router.post(
     "/",
+    authMiddleware,
     asyncHandler(async (req: Request, res: Response) => {
       const userId = getUserId(req);
       const { eventId, rating, comment } = req.body;
@@ -70,6 +75,7 @@ export function createReviewRouter(reviewService: ReviewService): Router {
   // Update review (authenticated, owner only)
   router.patch(
     "/:id",
+    authMiddleware,
     asyncHandler(async (req: Request, res: Response) => {
       const userId = getUserId(req);
       const { id } = req.params as { id: string };
@@ -87,6 +93,7 @@ export function createReviewRouter(reviewService: ReviewService): Router {
   // Delete review (authenticated, owner only)
   router.delete(
     "/:id",
+    authMiddleware,
     asyncHandler(async (req: Request, res: Response) => {
       const userId = getUserId(req);
       const { id } = req.params as { id: string };

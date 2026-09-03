@@ -1,11 +1,11 @@
 import http from "http";
 import { Server } from "socket.io";
-import app from "./index.js";
+import app, { allowedOrigins } from "./index.js";
 
 const port = process.env.PORT || 3000;
 const server = http.createServer(app);
 export const io = new Server(server, {
-  cors: { origin: "*" },
+  cors: { origin: allowedOrigins, credentials: true },
 });
 
 server.listen(port, () => {

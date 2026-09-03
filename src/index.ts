@@ -45,7 +45,7 @@ const app = express();
 // Browser clients (admin dashboard, main frontend) need explicit CORS
 // headers - fetch/axios calls are silently blocked without this even
 // though the API itself responds fine (e.g. to curl).
-const allowedOrigins = [
+export const allowedOrigins = [
   process.env.FRONTEND_URL,
   process.env.ADMIN_DASHBOARD_URL,
   "https://trip-nest-admin.vercel.app",
@@ -71,7 +71,7 @@ const chatService = new ChatService(chatRepository);
 const bookingRepository = new PrismaBookingRepository(prisma);
 const bookingService = new BookingService(bookingRepository, chatService);
 const userRepository = new PrismaUserRepository(prisma);
-const authService = new AuthService(userRepository);
+const authService = new AuthService(userRepository, prisma);
 const authMiddleware = createAuthMiddleware(authService);
 const eventRepository = new PrismaEventRepository(prisma);
 const eventService = new EventService(eventRepository, prisma);
@@ -121,7 +121,7 @@ app.use(
 );
 
 // Mount review routes (mixed - some public, some protected)
-app.use("/api/reviews", authMiddleware, createReviewRouter(reviewService));
+app.use("/api/reviews", createReviewRouter(reviewService, authMiddleware));
 
 // Mount sentiment routes (protected)
 app.use(

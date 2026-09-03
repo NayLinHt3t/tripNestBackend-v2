@@ -74,12 +74,17 @@ export class BookingService {
       throw new ValidationError("Only confirmed events can be booked");
     }
 
+    const confirmedTickets = await this.bookingRepository.countConfirmedTickets(eventId);
+    if (confirmedTickets + ticketCounts > event.capacity) {
+      throw new ValidationError("Not enough tickets available");
+    }
+
     const booking = new Booking(
       undefined, // Let Prisma auto-generate the ID
       userId,
       eventId,
       ticketCounts,
-      Status.CONFIRMED,
+      Status.PENDING,
       undefined,
       undefined,
     );
@@ -89,16 +94,7 @@ export class BookingService {
 
     const savedBooking = await this.bookingRepository.save(booking);
 
-    let chatRoomId: string | undefined;
-    if (this.chatService && savedBooking.status === Status.CONFIRMED) {
-      const room = await this.chatService.ensureRoomForEvent(
-        savedBooking.eventId,
-        savedBooking.userId,
-      );
-      chatRoomId = room.id;
-    }
-
-    return { booking: savedBooking, chatRoomId };
+    return { booking: savedBooking };
   }
 
   async confirmBooking(bookingId: string): Promise<Booking | null> {
@@ -120,7 +116,7 @@ export class BookingService {
       booking.calculateTotalPrice(event.price);
     }
 
-    booking.comfirmBooking();
+    booking.confirmBooking();
     const saved = await this.bookingRepository.save(booking);
 
     if (this.chatService && saved.status === Status.CONFIRMED) {

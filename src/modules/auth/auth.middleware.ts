@@ -30,22 +30,24 @@ export function requireRoles(...allowedRoles: string[]) {
 }
 
 export function createAuthMiddleware(authService: AuthService) {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const token = authService.extractToken(req.headers.authorization);
 
       if (!token) {
-        return res.status(401).json({
+        res.status(401).json({
           error: "Missing or invalid authorization header",
         });
+        return;
       }
 
-      const payload = authService.verifyToken(token);
+      const payload = await authService.verifyToken(token);
 
       if (!payload) {
-        return res.status(401).json({
+        res.status(401).json({
           error: "Invalid or expired token",
         });
+        return;
       }
 
       req.user = payload;
