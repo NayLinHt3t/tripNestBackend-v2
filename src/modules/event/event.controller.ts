@@ -26,10 +26,7 @@ export function createEventRouter(
     "/",
     asyncHandler(async (req: Request, res: Response) => {
       const events = await eventService.getAllEvents();
-      const visibleEvents = events.filter(
-        (event) => event.status === "CONFIRMED",
-      );
-      res.status(200).json(visibleEvents);
+      res.status(200).json(events);
     }),
   );
 
@@ -38,10 +35,7 @@ export function createEventRouter(
     "/upcoming",
     asyncHandler(async (req: Request, res: Response) => {
       const events = await eventService.getUpcomingEvents();
-      const visibleEvents = events.filter(
-        (event) => event.status === "CONFIRMED",
-      );
-      res.status(200).json(visibleEvents);
+      res.status(200).json(events);
     }),
   );
 
@@ -50,14 +44,7 @@ export function createEventRouter(
     "/tickets/availability",
     asyncHandler(async (req: Request, res: Response) => {
       const result = await eventService.getEventsWithAvailableTickets();
-      res.status(200).json({
-        eventsSortedByAvailability: result.eventsSortedByAvailability.filter(
-          (event) => event.status === "CONFIRMED",
-        ),
-        fullyBookedEvents: result.fullyBookedEvents.filter(
-          (event) => event.status === "CONFIRMED",
-        ),
-      });
+      res.status(200).json(result);
     }),
   );
 
@@ -89,10 +76,7 @@ export function createEventRouter(
         keyword: keywordValue,
         mood: moodValue,
       });
-      const visibleEvents = events.filter(
-        (event) => event.status === "CONFIRMED",
-      );
-      res.status(200).json(visibleEvents);
+      res.status(200).json(events);
     }),
   );
 

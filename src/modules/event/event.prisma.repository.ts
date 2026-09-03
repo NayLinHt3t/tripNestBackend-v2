@@ -31,6 +31,7 @@ export class PrismaEventRepository implements EventRepository {
 
   async findAll(): Promise<Event[]> {
     const events = await this.prisma.event.findMany({
+      where: { status: "CONFIRMED" },
       orderBy: { date: "asc" },
       include: { images: true },
     });
@@ -87,7 +88,10 @@ export class PrismaEventRepository implements EventRepository {
     }
 
     const events = await this.prisma.event.findMany({
-      where: filters.length ? { AND: filters } : undefined,
+      where: {
+        status: "CONFIRMED",
+        ...(filters.length ? { AND: filters } : {}),
+      },
       orderBy: { date: "asc" },
       include: { images: true },
     });
@@ -97,9 +101,8 @@ export class PrismaEventRepository implements EventRepository {
   async findUpcoming(): Promise<Event[]> {
     const events = await this.prisma.event.findMany({
       where: {
-        date: {
-          gte: new Date(),
-        },
+        status: "CONFIRMED",
+        date: { gte: new Date() },
       },
       orderBy: { date: "asc" },
       include: { images: true },
@@ -109,6 +112,7 @@ export class PrismaEventRepository implements EventRepository {
 
   async getEventsWithAvailableTickets(): Promise<EventsTicketResponse> {
     const events = await this.prisma.event.findMany({
+      where: { status: "CONFIRMED" },
       include: {
         images: true,
         bookings: {
