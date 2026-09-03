@@ -163,6 +163,21 @@ export class BookingService {
       throw new NotFoundError("Booking not found");
     }
 
+    const event = await this.bookingRepository.findEventById(booking.eventId);
+    if (!event) {
+      throw new NotFoundError("Event not found");
+    }
+
+    // Count confirmed tickets excluding this booking's current count
+    const confirmedTickets = await this.bookingRepository.countConfirmedTickets(booking.eventId);
+    const otherConfirmed = booking.status === "CONFIRMED"
+      ? confirmedTickets - booking.ticketCounts
+      : confirmedTickets;
+
+    if (otherConfirmed + ticketCounts > event.capacity) {
+      throw new ValidationError("Not enough tickets available");
+    }
+
     // Update ticket counts and recalculate total price
     booking.updateTicketCounts(ticketCounts);
     return this.bookingRepository.save(booking);

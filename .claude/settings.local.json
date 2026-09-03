@@ -4,7 +4,9 @@
       "Bash(npx vitest:*)",
       "Bash(npm run:*)",
       "Bash(kill:*)",
-      "Bash(awk '/^model Event /{f=1} f{print} f&&/^}/{exit}' prisma/schema.prisma)"
+      "Bash(awk '/^model Event /{f=1} f{print} f&&/^}/{exit}' prisma/schema.prisma)",
+      "Bash(git commit -m ' *)",
+      "Bash(git stash *)"
     ]
   }
 }

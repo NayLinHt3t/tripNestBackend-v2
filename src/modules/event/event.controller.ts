@@ -8,6 +8,18 @@ import { OrganizerService } from "../organizer/organizer.service.js";
 import { ChatService } from "../chatting/chatting.service.js";
 import { asyncHandler, getUserId } from "../../shared/http.js";
 
+const MAX_PAGE_LIMIT = 100;
+const DEFAULT_PAGE_LIMIT = 20;
+
+function parsePagination(query: Request["query"]) {
+  const page = Math.max(1, parseInt(query.page as string) || 1);
+  const limit = Math.min(
+    MAX_PAGE_LIMIT,
+    Math.max(1, parseInt(query.limit as string) || DEFAULT_PAGE_LIMIT),
+  );
+  return { page, limit };
+}
+
 export function createEventRouter(
   eventService: EventService,
   authMiddleware: RequestHandler,
@@ -25,7 +37,9 @@ export function createEventRouter(
   router.get(
     "/",
     asyncHandler(async (req: Request, res: Response) => {
-      const events = await eventService.getAllEvents();
+      const pagination = parsePagination(req.query);
+      const { events, total } = await eventService.getAllEvents(pagination);
+      res.setHeader("X-Total-Count", total);
       res.status(200).json(events);
     }),
   );
@@ -34,7 +48,9 @@ export function createEventRouter(
   router.get(
     "/upcoming",
     asyncHandler(async (req: Request, res: Response) => {
-      const events = await eventService.getUpcomingEvents();
+      const pagination = parsePagination(req.query);
+      const { events, total } = await eventService.getUpcomingEvents(pagination);
+      res.setHeader("X-Total-Count", total);
       res.status(200).json(events);
     }),
   );
@@ -71,11 +87,12 @@ export function createEventRouter(
         });
       }
 
-      const events = await eventService.searchEvents({
-        location: locationValue,
-        keyword: keywordValue,
-        mood: moodValue,
-      });
+      const pagination = parsePagination(req.query);
+      const { events, total } = await eventService.searchEvents(
+        { location: locationValue, keyword: keywordValue, mood: moodValue },
+        pagination,
+      );
+      res.setHeader("X-Total-Count", total);
       res.status(200).json(events);
     }),
   );

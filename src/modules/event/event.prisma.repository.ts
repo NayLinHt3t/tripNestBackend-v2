@@ -1,5 +1,5 @@
 import { PrismaClient } from "../database/prisma.js";
-import { Prisma } from "../../../generated/prisma/client.js";
+import { Prisma, Status } from "../../../generated/prisma/client.js";
 import {
   Event,
   CreateEventDto,
@@ -8,7 +8,7 @@ import {
   EventsTicketResponse,
   EventStatus,
 } from "./event.entity.js";
-import { EventRepository } from "./event.repository.js";
+import { EventRepository, PaginationOptions, PaginatedEvents } from "./event.repository.js";
 
 type EventWithImages = Prisma.EventGetPayload<{ include: { images: true } }>;
 
@@ -29,13 +29,20 @@ export class PrismaEventRepository implements EventRepository {
     return event ? toEvent(event) : null;
   }
 
-  async findAll(): Promise<Event[]> {
-    const events = await this.prisma.event.findMany({
-      where: { status: "CONFIRMED" },
-      orderBy: { date: "asc" },
-      include: { images: true },
-    });
-    return events.map(toEvent);
+  async findAll({ page, limit }: PaginationOptions): Promise<PaginatedEvents> {
+    const skip = (page - 1) * limit;
+    const where = { status: "CONFIRMED" } as const;
+    const [events, total] = await Promise.all([
+      this.prisma.event.findMany({
+        where,
+        orderBy: { date: "asc" },
+        include: { images: true },
+        skip,
+        take: limit,
+      }),
+      this.prisma.event.count({ where }),
+    ]);
+    return { events: events.map(toEvent), total };
   }
 
   async findByLocation(location: string): Promise<Event[]> {
@@ -52,28 +59,16 @@ export class PrismaEventRepository implements EventRepository {
     return events.map(toEvent);
   }
 
-  async findByQuery(query: {
-    location?: string;
-    keyword?: string;
-    mood?: string;
-  }): Promise<Event[]> {
-    const filters = [] as Array<
-      | { location: { contains: string; mode: "insensitive" } }
-      | {
-          OR: Array<
-            | { title: { contains: string; mode: "insensitive" } }
-            | { description: { contains: string; mode: "insensitive" } }
-          >;
-        }
-      | { mood: { contains: string; mode: "insensitive" } }
-    >;
+  async findByQuery(
+    query: { location?: string; keyword?: string; mood?: string },
+    { page, limit }: PaginationOptions,
+  ): Promise<PaginatedEvents> {
+    const skip = (page - 1) * limit;
+    const filters: Prisma.EventWhereInput[] = [];
 
     if (query.location) {
-      filters.push({
-        location: { contains: query.location, mode: "insensitive" },
-      });
+      filters.push({ location: { contains: query.location, mode: "insensitive" } });
     }
-
     if (query.keyword) {
       filters.push({
         OR: [
@@ -82,32 +77,42 @@ export class PrismaEventRepository implements EventRepository {
         ],
       });
     }
-
     if (query.mood) {
       filters.push({ mood: { contains: query.mood, mode: "insensitive" } });
     }
 
-    const events = await this.prisma.event.findMany({
-      where: {
-        status: "CONFIRMED",
-        ...(filters.length ? { AND: filters } : {}),
-      },
-      orderBy: { date: "asc" },
-      include: { images: true },
-    });
-    return events.map(toEvent);
+    const where: Prisma.EventWhereInput = {
+      status: Status.CONFIRMED,
+      ...(filters.length ? { AND: filters } : {}),
+    };
+
+    const [events, total] = await Promise.all([
+      this.prisma.event.findMany({
+        where,
+        orderBy: { date: "asc" },
+        include: { images: true },
+        skip,
+        take: limit,
+      }),
+      this.prisma.event.count({ where }),
+    ]);
+    return { events: events.map(toEvent), total };
   }
 
-  async findUpcoming(): Promise<Event[]> {
-    const events = await this.prisma.event.findMany({
-      where: {
-        status: "CONFIRMED",
-        date: { gte: new Date() },
-      },
-      orderBy: { date: "asc" },
-      include: { images: true },
-    });
-    return events.map(toEvent);
+  async findUpcoming({ page, limit }: PaginationOptions): Promise<PaginatedEvents> {
+    const skip = (page - 1) * limit;
+    const where = { status: "CONFIRMED", date: { gte: new Date() } } as const;
+    const [events, total] = await Promise.all([
+      this.prisma.event.findMany({
+        where,
+        orderBy: { date: "asc" },
+        include: { images: true },
+        skip,
+        take: limit,
+      }),
+      this.prisma.event.count({ where }),
+    ]);
+    return { events: events.map(toEvent), total };
   }
 
   async getEventsWithAvailableTickets(): Promise<EventsTicketResponse> {

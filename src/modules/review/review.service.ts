@@ -2,6 +2,7 @@ import { Review, CreateReviewDto, UpdateReviewDto } from "./review.entity.js";
 import { ReviewRepository } from "./review.repository.js";
 import { SentimentService } from "../sentiment/sentiment.service.js";
 import { MoodPreferenceService } from "../event/mood.preference.service.js";
+import { PrismaClient } from "../database/prisma.js";
 import {
   ValidationError,
   NotFoundError,
@@ -13,7 +14,10 @@ export class ReviewService {
   private sentimentService?: SentimentService;
   private moodPreferenceService?: MoodPreferenceService;
 
-  constructor(private reviewRepository: ReviewRepository) {}
+  constructor(
+    private reviewRepository: ReviewRepository,
+    private prisma?: PrismaClient,
+  ) {}
 
   setSentimentService(sentimentService: SentimentService): void {
     this.sentimentService = sentimentService;
@@ -62,6 +66,16 @@ export class ReviewService {
 
     if (data.rating < 1 || data.rating > 5) {
       throw new ValidationError("Rating must be between 1 and 5");
+    }
+
+    // Only users with a confirmed booking may leave a review
+    if (this.prisma) {
+      const booking = await this.prisma.booking.findFirst({
+        where: { userId, eventId: data.eventId, status: "CONFIRMED" },
+      });
+      if (!booking) {
+        throw new ForbiddenError("You must have a confirmed booking to review this event");
+      }
     }
 
     // Check if user already reviewed this event

@@ -6,7 +6,7 @@ import {
   EventStatus,
 } from "./event.entity.js";
 import { categorizeMood, isValidMood } from "./mood.categorizer.js";
-import { EventRepository } from "./event.repository.js";
+import { EventRepository, PaginatedEvents, PaginationOptions } from "./event.repository.js";
 import { MoodPreferenceService } from "./mood.preference.service.js";
 import { PrismaClient } from "../database/prisma.js";
 import {
@@ -29,12 +29,12 @@ export class EventService {
     return this.eventRepository.findById(id);
   }
 
-  async getAllEvents(): Promise<Event[]> {
-    return this.eventRepository.findAll();
+  async getAllEvents(pagination: PaginationOptions): Promise<PaginatedEvents> {
+    return this.eventRepository.findAll(pagination);
   }
 
-  async getUpcomingEvents(): Promise<Event[]> {
-    return this.eventRepository.findUpcoming();
+  async getUpcomingEvents(pagination: PaginationOptions): Promise<PaginatedEvents> {
+    return this.eventRepository.findUpcoming(pagination);
   }
 
   async getEventsWithAvailableTickets(): Promise<EventsTicketResponse> {
@@ -48,16 +48,14 @@ export class EventService {
     return this.eventRepository.findByLocation(location);
   }
 
-  async searchEvents(query: {
-    location?: string;
-    keyword?: string;
-    mood?: string;
-  }): Promise<Event[]> {
+  async searchEvents(
+    query: { location?: string; keyword?: string; mood?: string },
+    pagination: PaginationOptions,
+  ): Promise<PaginatedEvents> {
     if (!query.location && !query.keyword && !query.mood) {
       throw new ValidationError("Location, keyword, or mood is required");
     }
-
-    return this.eventRepository.findByQuery(query);
+    return this.eventRepository.findByQuery(query, pagination);
   }
 
   /**
@@ -337,13 +335,15 @@ export class EventService {
   }
 
   async getRecommendedEvents(userId: string): Promise<Event[]> {
+    const fallbackPagination: PaginationOptions = { page: 1, limit: 20 };
+
     if (!this.moodPreferenceService || !this.prisma) {
-      return this.eventRepository.findUpcoming();
+      return (await this.eventRepository.findUpcoming(fallbackPagination)).events;
     }
 
     const topMoods = await this.moodPreferenceService.getTopMoods(userId);
     if (!topMoods.length) {
-      return this.eventRepository.findUpcoming();
+      return (await this.eventRepository.findUpcoming(fallbackPagination)).events;
     }
 
     const userBookings = await this.prisma.booking.findMany({
@@ -354,7 +354,7 @@ export class EventService {
 
     const recommended = await this.eventRepository.findByMoods(topMoods, bookedIds);
     if (!recommended.length) {
-      return this.eventRepository.findUpcoming();
+      return (await this.eventRepository.findUpcoming(fallbackPagination)).events;
     }
     return recommended;
   }

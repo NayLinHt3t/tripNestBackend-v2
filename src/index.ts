@@ -37,6 +37,7 @@ import { PrismaDashboardRepository } from "./modules/dashboard/dashboard.prisma.
 import { createAdminRouter } from "./modules/admin/admin.controller.js";
 import { AdminService } from "./modules/admin/admin.service.js";
 import { MoodPreferenceService } from "./modules/event/mood.preference.service.js";
+import { startTokenCleanupJob } from "./modules/auth/token.cleanup.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -78,7 +79,7 @@ const authMiddleware = createAuthMiddleware(authService);
 const eventRepository = new PrismaEventRepository(prisma);
 const eventService = new EventService(eventRepository, prisma, moodPreferenceService);
 const reviewRepository = new PrismaReviewRepository(prisma);
-const reviewService = new ReviewService(reviewRepository);
+const reviewService = new ReviewService(reviewRepository, prisma);
 const profileRepository = new PrismaProfileRepository(prisma);
 const profileService = new ProfileService(profileRepository, prisma);
 const organizerRepository = new PrismaOrganizerRepository(prisma);
@@ -160,5 +161,8 @@ app.use("/api/admin", authMiddleware, createAdminRouter(adminService));
 
 // Start sentiment worker
 sentimentWorker.start();
+
+// Start daily cleanup job for expired invalidated tokens
+startTokenCleanupJob(prisma);
 
 export default app;

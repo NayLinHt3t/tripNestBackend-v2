@@ -1,7 +1,32 @@
 import { Router, Request, Response, RequestHandler } from "express";
+import rateLimit from "express-rate-limit";
 import { AuthService } from "./auth.service.js";
 import { asyncHandler, getUserId } from "../../shared/http.js";
 import { ValidationError } from "../../shared/errors.js";
+
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 5,
+  message: { error: "Too many login attempts. Please try again in a minute." },
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 3,
+  message: { error: "Too many registration attempts. Please try again in a minute." },
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+});
+
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 3,
+  message: { error: "Too many password reset requests. Please try again in a minute." },
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+});
 
 export function createAuthRouter(
   authService: AuthService,
@@ -12,6 +37,7 @@ export function createAuthRouter(
   // Register endpoint - creates a new user
   router.post(
     "/register",
+    registerLimiter,
     asyncHandler(async (req: Request, res: Response) => {
       const { email, password, name } = req.body;
 
@@ -40,6 +66,7 @@ export function createAuthRouter(
   // Login endpoint - returns a JWT token
   router.post(
     "/login",
+    loginLimiter,
     asyncHandler(async (req: Request, res: Response) => {
       const { email, password } = req.body;
 
@@ -105,7 +132,7 @@ export function createAuthRouter(
   }
 
   // Forgot password - generates a reset token and sends email
-  router.post("/forgot-password", async (req: Request, res: Response) => {
+  router.post("/forgot-password", forgotPasswordLimiter, async (req: Request, res: Response) => {
     try {
       const { email } = req.body;
 
