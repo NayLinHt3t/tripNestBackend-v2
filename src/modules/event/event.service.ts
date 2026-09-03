@@ -5,7 +5,9 @@ import {
   EventsTicketResponse,
   EventStatus,
 } from "./event.entity.js";
+import { categorizeMood, isValidMood } from "./mood.categorizer.js";
 import { EventRepository } from "./event.repository.js";
+import { MoodPreferenceService } from "./mood.preference.service.js";
 import { PrismaClient } from "../database/prisma.js";
 import {
   ValidationError,
@@ -17,6 +19,7 @@ export class EventService {
   constructor(
     private eventRepository: EventRepository,
     private prisma?: PrismaClient,
+    private moodPreferenceService?: MoodPreferenceService,
   ) {}
 
   async getEvent(id: string): Promise<Event | null> {
@@ -135,6 +138,18 @@ export class EventService {
     // Validate location length
     if (data.location.length > 255) {
       throw new ValidationError("Event location cannot exceed 255 characters");
+    }
+
+    // Validate provided mood or auto-categorize
+    if (data.mood) {
+      if (!isValidMood(data.mood)) {
+        throw new ValidationError(`Invalid mood value: ${data.mood}`);
+      }
+    } else {
+      const detectedMood = categorizeMood(data.title, data.description);
+      if (detectedMood) {
+        data = { ...data, mood: detectedMood };
+      }
     }
 
     return this.eventRepository.create(data);
@@ -319,6 +334,29 @@ export class EventService {
       status: approved.status as EventStatus,
       images: approved.images ?? [],
     };
+  }
+
+  async getRecommendedEvents(userId: string): Promise<Event[]> {
+    if (!this.moodPreferenceService || !this.prisma) {
+      return this.eventRepository.findUpcoming();
+    }
+
+    const topMoods = await this.moodPreferenceService.getTopMoods(userId);
+    if (!topMoods.length) {
+      return this.eventRepository.findUpcoming();
+    }
+
+    const userBookings = await this.prisma.booking.findMany({
+      where: { userId, status: "CONFIRMED" },
+      select: { eventId: true },
+    });
+    const bookedIds = userBookings.map((b) => b.eventId);
+
+    const recommended = await this.eventRepository.findByMoods(topMoods, bookedIds);
+    if (!recommended.length) {
+      return this.eventRepository.findUpcoming();
+    }
+    return recommended;
   }
 
   /**

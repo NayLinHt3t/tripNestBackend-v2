@@ -159,6 +159,20 @@ export class PrismaEventRepository implements EventRepository {
     };
   }
 
+  async findByMoods(moods: string[], excludeEventIds: string[] = []): Promise<Event[]> {
+    const events = await this.prisma.event.findMany({
+      where: {
+        mood: { in: moods },
+        status: "CONFIRMED",
+        date: { gte: new Date() },
+        ...(excludeEventIds.length ? { id: { notIn: excludeEventIds } } : {}),
+      },
+      orderBy: { date: "asc" },
+      include: { images: true },
+    });
+    return events.map(toEvent);
+  }
+
   async create(data: CreateEventDto): Promise<Event> {
     const event = await this.prisma.event.create({
       data: {

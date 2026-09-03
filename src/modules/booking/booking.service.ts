@@ -3,11 +3,13 @@ import { BookingRepository } from "./booking.repository.js";
 import { ValidationError, NotFoundError } from "../../shared/errors.js";
 import { Status } from "../../../generated/prisma/enums.js";
 import { ChatService } from "../chatting/chatting.service.js";
+import { MoodPreferenceService } from "../event/mood.preference.service.js";
 
 export class BookingService {
   constructor(
     private bookingRepository: BookingRepository,
     private chatService?: ChatService,
+    private moodPreferenceService?: MoodPreferenceService,
   ) {}
 
   async getBooking(bookingId: string): Promise<Booking | null> {
@@ -121,6 +123,10 @@ export class BookingService {
 
     if (this.chatService && saved.status === Status.CONFIRMED) {
       await this.chatService.ensureRoomForEvent(saved.eventId, saved.userId);
+    }
+
+    if (this.moodPreferenceService && saved.status === Status.CONFIRMED) {
+      await this.moodPreferenceService.incrementFromEvent(saved.userId, saved.eventId, 1.0);
     }
 
     return saved;

@@ -1,6 +1,7 @@
 import { Router, Request, Response, RequestHandler } from "express";
 import multer from "multer";
 import { EventService } from "./event.service.js";
+import { MoodPreferenceService } from "./mood.preference.service.js";
 import { uploadImageBuffer } from "../utils/cloudinary.js";
 import { AuthenticatedRequest, hasRole } from "../auth/auth.middleware.js";
 import { OrganizerService } from "../organizer/organizer.service.js";
@@ -12,6 +13,7 @@ export function createEventRouter(
   authMiddleware: RequestHandler,
   organizerService?: OrganizerService,
   chatService?: ChatService,
+  moodPreferenceService?: MoodPreferenceService,
 ): Router {
   const router = Router();
   const upload = multer({
@@ -130,6 +132,17 @@ export function createEventRouter(
   );
 
   router.get("/mine", authMiddleware, myEventsHandler);
+
+  // Get mood-based recommended events for the authenticated user
+  router.get(
+    "/recommended",
+    authMiddleware,
+    asyncHandler(async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      const events = await eventService.getRecommendedEvents(userId);
+      res.status(200).json(events);
+    }),
+  );
 
   // Get event by ID
   router.get(

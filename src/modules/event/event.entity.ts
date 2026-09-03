@@ -1,3 +1,5 @@
+export { Mood, MOOD_VALUES, isValidMood } from "./mood.categorizer.js";
+
 export enum EventStatus {
   PENDING = "PENDING",
   CONFIRMED = "CONFIRMED",

@@ -1,6 +1,7 @@
 import { Review, CreateReviewDto, UpdateReviewDto } from "./review.entity.js";
 import { ReviewRepository } from "./review.repository.js";
 import { SentimentService } from "../sentiment/sentiment.service.js";
+import { MoodPreferenceService } from "../event/mood.preference.service.js";
 import {
   ValidationError,
   NotFoundError,
@@ -10,11 +11,16 @@ import {
 
 export class ReviewService {
   private sentimentService?: SentimentService;
+  private moodPreferenceService?: MoodPreferenceService;
 
   constructor(private reviewRepository: ReviewRepository) {}
 
   setSentimentService(sentimentService: SentimentService): void {
     this.sentimentService = sentimentService;
+  }
+
+  setMoodPreferenceService(moodPreferenceService: MoodPreferenceService): void {
+    this.moodPreferenceService = moodPreferenceService;
   }
 
   async getReview(id: string): Promise<Review | null> {
@@ -68,6 +74,14 @@ export class ReviewService {
     }
 
     const review = await this.reviewRepository.create(userId, data);
+
+    // Update mood preferences based on rating (positive: >=4, negative: <=2, neutral: skip)
+    if (this.moodPreferenceService) {
+      const delta = data.rating >= 4 ? 0.5 : data.rating <= 2 ? -0.3 : 0;
+      if (delta !== 0) {
+        await this.moodPreferenceService.incrementFromEvent(userId, data.eventId, delta);
+      }
+    }
 
     // Create sentiment job if comment exists and sentiment service is available
     if (review.comment && this.sentimentService) {

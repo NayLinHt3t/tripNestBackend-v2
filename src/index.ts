@@ -36,6 +36,7 @@ import { DashboardService } from "./modules/dashboard/dashboard.service.js";
 import { PrismaDashboardRepository } from "./modules/dashboard/dashboard.prisma.repository.js";
 import { createAdminRouter } from "./modules/admin/admin.controller.js";
 import { AdminService } from "./modules/admin/admin.service.js";
+import { MoodPreferenceService } from "./modules/event/mood.preference.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -68,13 +69,14 @@ app.use(express.json());
 const prisma = createPrismaClient();
 const chatRepository = new PrismaChatRepository(prisma);
 const chatService = new ChatService(chatRepository);
+const moodPreferenceService = new MoodPreferenceService(prisma);
 const bookingRepository = new PrismaBookingRepository(prisma);
-const bookingService = new BookingService(bookingRepository, chatService);
+const bookingService = new BookingService(bookingRepository, chatService, moodPreferenceService);
 const userRepository = new PrismaUserRepository(prisma);
 const authService = new AuthService(userRepository, prisma);
 const authMiddleware = createAuthMiddleware(authService);
 const eventRepository = new PrismaEventRepository(prisma);
-const eventService = new EventService(eventRepository, prisma);
+const eventService = new EventService(eventRepository, prisma, moodPreferenceService);
 const reviewRepository = new PrismaReviewRepository(prisma);
 const reviewService = new ReviewService(reviewRepository);
 const profileRepository = new PrismaProfileRepository(prisma);
@@ -98,8 +100,9 @@ const sentimentWorker = new SentimentWorker(
   sentimentJobRepository,
 );
 
-// Wire up review service with sentiment service
+// Wire up review service with sentiment and mood preference services
 reviewService.setSentimentService(sentimentService);
+reviewService.setMoodPreferenceService(moodPreferenceService);
 
 // Serve API documentation at root
 app.get("/", (req, res) => {
@@ -117,6 +120,7 @@ app.use(
     authMiddleware,
     organizerService,
     chatService,
+    moodPreferenceService,
   ),
 );
 

@@ -15,6 +15,7 @@ export interface EventRepository {
     keyword?: string;
     mood?: string;
   }): Promise<Event[]>;
+  findByMoods(moods: string[], excludeEventIds?: string[]): Promise<Event[]>;
   findUpcoming(): Promise<Event[]>;
   getEventsWithAvailableTickets(): Promise<EventsTicketResponse>;
   create(data: CreateEventDto): Promise<Event>;
