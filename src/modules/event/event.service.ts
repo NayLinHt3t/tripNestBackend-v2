@@ -336,7 +336,7 @@ export class EventService {
     const events = await this.prisma.event.findMany({
       where: { organizerId },
       include: { images: true },
-      orderBy: { date: "asc" },
+      orderBy: { createdAt: "desc" },
     });
 
     return events.map((event) => ({

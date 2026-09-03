@@ -10,7 +10,7 @@ export class Booking {
     public unitPrice?: number,
     public totalPrice?: number,
   ) {}
-  comfirmBooking() {
+  confirmBooking() {
     this.status = Status.CONFIRMED;
   }
 

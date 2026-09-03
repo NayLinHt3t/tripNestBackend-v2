@@ -10,6 +10,7 @@ import {
   NotFoundError,
   ConflictError,
 } from "../../shared/errors.js";
+import { PrismaClient } from "../database/prisma.js";
 
 export interface AuthPayload {
   userId: string;
@@ -22,16 +23,17 @@ interface ResetToken {
   expiresAt: Date;
 }
 
-// Simple in-memory blacklist for invalidated tokens
+// Fallback in-memory stores used when no Prisma client is injected (tests)
 const tokenBlacklist = new Set<string>();
-
-// In-memory storage for password reset tokens (use database in production)
 const resetTokens = new Map<string, ResetToken>();
 
 export class AuthService {
   private jwtSecret = process.env.JWT_SECRET || "your-secret-key";
 
-  constructor(private userRepository?: UserRepository) {}
+  constructor(
+    private userRepository?: UserRepository,
+    private prisma?: PrismaClient,
+  ) {}
 
   async register(
     email: string,
@@ -88,11 +90,21 @@ export class AuthService {
     return { token, userId: user.id, email: user.email, roles: user.roles };
   }
 
-  logout(token: string): void {
-    tokenBlacklist.add(token);
+  async logout(token: string): Promise<void> {
+    if (this.prisma) {
+      await this.prisma.invalidatedToken.create({ data: { token } });
+    } else {
+      tokenBlacklist.add(token);
+    }
   }
 
-  isTokenBlacklisted(token: string): boolean {
+  async isTokenBlacklisted(token: string): Promise<boolean> {
+    if (this.prisma) {
+      const result = await this.prisma.invalidatedToken.findUnique({
+        where: { token },
+      });
+      return !!result;
+    }
     return tokenBlacklist.has(token);
   }
 
@@ -102,9 +114,9 @@ export class AuthService {
     });
   }
 
-  verifyToken(token: string): AuthPayload | null {
+  async verifyToken(token: string): Promise<AuthPayload | null> {
     try {
-      if (this.isTokenBlacklisted(token)) {
+      if (await this.isTokenBlacklisted(token)) {
         return null;
       }
       const decoded = jwt.verify(token, this.jwtSecret) as Partial<AuthPayload>;
@@ -127,6 +139,7 @@ export class AuthService {
     if (parts.length !== 2 || parts[0] !== "Bearer") return null;
     return parts[1];
   }
+
   async changePassword(
     userId: string,
     oldPassword: string,
@@ -157,8 +170,8 @@ export class AuthService {
 
     const user = await this.userRepository.findByEmail(email);
     if (!user) {
-      // Don't reveal if email exists or not for security
-      throw new Error("If this email exists, a reset link has been sent");
+      // Don't reveal whether the email exists
+      return;
     }
 
     // Generate a random reset token
@@ -167,11 +180,17 @@ export class AuthService {
     // Token expires in 1 hour
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-    // Store the token
-    resetTokens.set(resetToken, {
-      email: user.email,
-      expiresAt,
-    });
+    if (this.prisma) {
+      // Delete any existing reset token for this email before creating a new one
+      await this.prisma.passwordResetToken.deleteMany({
+        where: { email: user.email },
+      });
+      await this.prisma.passwordResetToken.create({
+        data: { token: resetToken, email: user.email, expiresAt },
+      });
+    } else {
+      resetTokens.set(resetToken, { email: user.email, expiresAt });
+    }
 
     // Send password reset email
     await sendPasswordResetEmail(user.email, resetToken);
@@ -182,18 +201,41 @@ export class AuthService {
       throw new Error("User repository not configured");
     }
 
-    const tokenData = resetTokens.get(resetToken);
+    let tokenEmail: string;
+    let tokenExpiresAt: Date;
 
-    if (!tokenData) {
-      throw new ValidationError("Invalid or expired reset token");
+    if (this.prisma) {
+      const tokenData = await this.prisma.passwordResetToken.findUnique({
+        where: { token: resetToken },
+      });
+
+      if (!tokenData) {
+        throw new ValidationError("Invalid or expired reset token");
+      }
+
+      tokenEmail = tokenData.email;
+      tokenExpiresAt = tokenData.expiresAt;
+    } else {
+      const tokenData = resetTokens.get(resetToken);
+      if (!tokenData) {
+        throw new ValidationError("Invalid or expired reset token");
+      }
+      tokenEmail = tokenData.email;
+      tokenExpiresAt = tokenData.expiresAt;
     }
 
-    if (new Date() > tokenData.expiresAt) {
-      resetTokens.delete(resetToken);
+    if (new Date() > tokenExpiresAt) {
+      if (this.prisma) {
+        await this.prisma.passwordResetToken.delete({
+          where: { token: resetToken },
+        });
+      } else {
+        resetTokens.delete(resetToken);
+      }
       throw new ValidationError("Reset token has expired");
     }
 
-    const user = await this.userRepository.findByEmail(tokenData.email);
+    const user = await this.userRepository.findByEmail(tokenEmail);
     if (!user) {
       throw new NotFoundError("User not found");
     }
@@ -201,7 +243,12 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await this.userRepository.updatePassword(user.id, hashedPassword);
 
-    // Remove the used token
-    resetTokens.delete(resetToken);
+    if (this.prisma) {
+      await this.prisma.passwordResetToken.delete({
+        where: { token: resetToken },
+      });
+    } else {
+      resetTokens.delete(resetToken);
+    }
   }
 }

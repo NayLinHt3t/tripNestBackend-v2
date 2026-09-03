@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npx vitest:*)",
       "Bash(npm run:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(awk '/^model Event /{f=1} f{print} f&&/^}/{exit}' prisma/schema.prisma)"
     ]
   }
 }

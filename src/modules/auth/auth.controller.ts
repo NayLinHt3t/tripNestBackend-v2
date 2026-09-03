@@ -70,7 +70,7 @@ export function createAuthRouter(
         throw new ValidationError("No token provided");
       }
 
-      authService.logout(token);
+      await authService.logout(token);
 
       res.status(200).json({
         message: "Logout successful",
