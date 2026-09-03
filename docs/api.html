@@ -717,8 +717,20 @@
       <section id="events">
         <h2>📅 Events Endpoints</h2>
         <p>
-          Events are public resources - no authentication required for viewing.
+          Events are public resources — no authentication required for viewing. Authenticated users can
+          also fetch personalized mood-based recommendations.
         </p>
+
+        <div class="info-box tip">
+          <strong>🎭 Mood Auto-Categorization:</strong> When creating an event, if <code class="inline-code">mood</code>
+          is not supplied, the system automatically assigns one by scoring the title and description against
+          keyword lists for 10 mood categories. Valid mood values are:
+          <code class="inline-code">FESTIVE</code>, <code class="inline-code">CHILL</code>,
+          <code class="inline-code">ENERGETIC</code>, <code class="inline-code">ROMANTIC</code>,
+          <code class="inline-code">ADVENTUROUS</code>, <code class="inline-code">CULTURAL</code>,
+          <code class="inline-code">PARTY</code>, <code class="inline-code">RELAXED</code>,
+          <code class="inline-code">EDUCATIONAL</code>, <code class="inline-code">SPIRITUAL</code>.
+        </div>
 
         <!-- Get All Events -->
         <div class="endpoint">
@@ -996,6 +1008,54 @@
           </div>
         </div>
 
+        <!-- Get Recommended Events -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/events/recommended</span>
+            <span class="endpoint-desc">Get mood-based event recommendations for the user</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Description</h4>
+            <p>
+              Returns CONFIRMED future events that match the authenticated user's top mood preferences,
+              excluding events they have already booked. Mood preferences are learned automatically from
+              booking history and review ratings:
+            </p>
+            <table>
+              <tr><th>Signal</th><th>Score Delta</th></tr>
+              <tr><td>Booking confirmed</td><td>+1.0</td></tr>
+              <tr><td>Review rating ≥ 4</td><td>+0.5</td></tr>
+              <tr><td>Review rating ≤ 2</td><td>−0.3</td></tr>
+              <tr><td>Review rating = 3</td><td>no change</td></tr>
+            </table>
+            <p>Falls back to upcoming events when the user has no preference history yet.</p>
+
+            <h4>Success Response (200)</h4>
+            <pre>[
+  {
+    "id": "event-uuid",
+    "title": "Jazz Night by the Bay",
+    "description": "A relaxing evening of live jazz",
+    "date": "2026-10-15T19:00:00.000Z",
+    "location": "San Francisco, CA",
+    "capacity": 150,
+    "price": 35.00,
+    "mood": "CHILL",
+    "organizerId": "org-uuid",
+    "status": "CONFIRMED",
+    "images": [],
+    "createdAt": "2026-09-01T10:00:00.000Z"
+  }
+]</pre>
+
+            <h4>Error Responses</h4>
+            <pre>// 401 Unauthorized
+{ "error": "Unauthorized" }</pre>
+          </div>
+        </div>
+
         <!-- Get Event by ID -->
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
@@ -1112,7 +1172,11 @@
                 <td>mood</td>
                 <td>string</td>
                 <td class="optional">No</td>
-                <td>Event mood or theme</td>
+                <td>
+                  Event mood — must be one of the 10 valid values (FESTIVE, CHILL, ENERGETIC, ROMANTIC,
+                  ADVENTUROUS, CULTURAL, PARTY, RELAXED, EDUCATIONAL, SPIRITUAL). If omitted, the
+                  system auto-assigns a mood by scoring the title and description against keyword lists.
+                </td>
               </tr>
               <tr>
                 <td>imageUrls</td>
@@ -1131,12 +1195,17 @@
   "location": "Central Park, NYC",
   "capacity": 5000,
   "price": 99.99,
-  "mood": "vibrant",
+  "mood": "FESTIVE",
   "imageUrls": [
     "https://res.cloudinary.com/tripnest/events/banner.jpg"
   ]
 }</pre
             >
+
+            <div class="info-box tip">
+              <strong>💡 Auto-mood:</strong> Omit <code class="inline-code">mood</code> and the system
+              will assign one automatically based on the event's title and description keywords.
+            </div>
 
             <h4>Success Response (201)</h4>
             <pre>
@@ -1156,8 +1225,9 @@
   "location": "Central Park, NYC",
   "capacity": 5000,
   "price": 99.99,
-  "mood": "vibrant",
+  "mood": "FESTIVE",
   "organizerId": "org123456",
+  "status": "PENDING",
   "createdAt": "2026-01-20T10:00:00.000Z"
 }</pre
             >
