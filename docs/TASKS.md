@@ -9,6 +9,11 @@ Prioritized backlog of completed work, known gaps, and planned features. Each it
 | ID | Task |
 |----|------|
 | C1 | Migrate `InvalidatedToken` and `PasswordResetToken` to DB — logout and password-reset now persist across restarts |
+| C2 | Rate limiting — `express-rate-limit` on `/register` (3/min), `/login` (5/min), `/forgot-password` (3/min) |
+| C3 | Pagination — `?page=&limit=` (default 20, cap 100) on `/events`, `/upcoming`, `/search`; `X-Total-Count` header |
+| C4 | Token cleanup job — `node-cron` daily at 02:00 deletes `InvalidatedToken` rows older than 7 days |
+| C5 | Review booking gate — `createReview` requires a CONFIRMED booking for the event; returns 403 otherwise |
+| C6 | Capacity re-check on `updateBooking` — correctly accounts for the booking's own existing count |
 | FIX1 | DB-backed token blacklist in `AuthService` — `logout`, `verifyToken`, `isTokenBlacklisted` are now async and DB-backed |
 | FIX2 | Booking capacity check — `createBooking` validates remaining capacity before insert; status starts as `PENDING` |
 | FIX3 | Chat room join gated on confirmation — room is created/joined in `confirmBooking`, not `createBooking` |
@@ -31,11 +36,11 @@ Prioritized backlog of completed work, known gaps, and planned features. Each it
 
 | ID | Task | Detail |
 |----|------|--------|
-| C2 | Rate limiting on auth endpoints | Apply per-IP limits to `POST /api/auth/login` (5/min), `POST /api/auth/register` (3/min), `POST /api/auth/forgot-password` (3/min). Use `express-rate-limit`; back with Redis when available. |
-| C3 | Pagination on event list endpoints | `GET /api/events`, `/upcoming`, `/search` return every row with no limit. Add `page` + `limit` query params (default 20, cap 100), return `X-Total-Count` header. |
-| C4 | `InvalidatedToken` cleanup job | Blacklisted tokens accumulate forever. Add a `node-cron` task that deletes rows whose JWT `exp` has passed. Run daily. |
-| C5 | Gate reviews on confirmed bookings | Any authenticated user can currently review any event. Only users with a `CONFIRMED` booking for that event should be allowed. Add check in `ReviewService.createReview`. |
-| C6 | Re-check capacity on `updateBooking` | Increasing ticket count on an existing booking bypasses the capacity guard in `createBooking`. Apply the same `countConfirmedTickets` check before saving. |
+| ~~C2~~ | ~~Rate limiting on auth endpoints~~ | ✅ Done — `express-rate-limit` on `/register` (3/min), `/login` (5/min), `/forgot-password` (3/min) |
+| ~~C3~~ | ~~Pagination on event list endpoints~~ | ✅ Done — `?page=&limit=` (default 20, cap 100) on `/events`, `/upcoming`, `/search`; `X-Total-Count` header on every response |
+| ~~C4~~ | ~~`InvalidatedToken` cleanup job~~ | ✅ Done — `node-cron` daily job at 02:00 deletes tokens older than 7 days |
+| ~~C5~~ | ~~Gate reviews on confirmed bookings~~ | ✅ Done — `ReviewService.createReview` checks for a CONFIRMED booking; returns 403 if none found |
+| ~~C6~~ | ~~Re-check capacity on `updateBooking`~~ | ✅ Done — subtracts booking's own current count before validating new ticket count against capacity |
 
 ---
 
