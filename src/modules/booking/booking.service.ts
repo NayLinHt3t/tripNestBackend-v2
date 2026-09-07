@@ -96,7 +96,13 @@ export class BookingService {
 
     const savedBooking = await this.bookingRepository.save(booking);
 
-    return { booking: savedBooking };
+    let chatRoomId: string | undefined;
+    if (this.chatService) {
+      const room = await this.chatService.ensureRoomForEvent(savedBooking.eventId, savedBooking.userId);
+      chatRoomId = room.id;
+    }
+
+    return { booking: savedBooking, chatRoomId };
   }
 
   async confirmBooking(bookingId: string): Promise<Booking | null> {

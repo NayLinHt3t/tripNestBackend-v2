@@ -3,6 +3,9 @@ node_modules
 
 # Environment variables
 .env
+
+# Local test credentials
+.test-credentials
 .env.local
 .env.*.local
 

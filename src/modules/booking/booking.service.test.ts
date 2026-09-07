@@ -16,7 +16,8 @@ const makeBooking = (overrides?: Partial<Booking>): Booking =>
 const makeRepo = (overrides?: Partial<BookingRepository>): BookingRepository => ({
   findById: vi.fn().mockResolvedValue(makeBooking()),
   findByUserId: vi.fn().mockResolvedValue([makeBooking()]),
-  findEventById: vi.fn().mockResolvedValue({ id: "event-1", price: 1000, status: "CONFIRMED" }),
+  findEventById: vi.fn().mockResolvedValue({ id: "event-1", price: 1000, status: "CONFIRMED", capacity: 100 }),
+  countConfirmedTickets: vi.fn().mockResolvedValue(0),
   save: vi.fn().mockImplementation(async (b: Booking) => b),
   ...overrides,
 });
