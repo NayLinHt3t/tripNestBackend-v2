@@ -16,6 +16,20 @@ export function createBookingRouter(bookingService: BookingService): Router {
     }),
   );
 
+  // Get all bookings for the organizer's events — ORGANIZER or ADMIN only
+  router.get(
+    "/organizer",
+    asyncHandler(async (req: Request, res: Response) => {
+      if (!hasRole(req as AuthenticatedRequest, ["ORGANIZER", "ADMIN"])) {
+        throw new ForbiddenError("Only organizers or admins can view organizer bookings");
+      }
+      const userId = getUserId(req);
+      const status = typeof req.query.status === "string" ? req.query.status : undefined;
+      const bookings = await bookingService.getBookingsByOrganizer(userId, status);
+      res.status(200).json(bookings);
+    }),
+  );
+
   // Get booking by ID
   router.get(
     "/:id",

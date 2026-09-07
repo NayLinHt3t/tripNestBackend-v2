@@ -1,6 +1,6 @@
 import { PrismaClient } from "../database/prisma.js";
 import { Booking } from "./booking.entity.js";
-import { BookingRepository, EventInfo } from "./booking.repository.js";
+import { BookingRepository, BookingWithDetails, EventInfo } from "./booking.repository.js";
 
 export class PrismaBookingRepository implements BookingRepository {
   constructor(private prisma: PrismaClient) {} // Inject PrismaClient
@@ -38,6 +38,26 @@ export class PrismaBookingRepository implements BookingRepository {
           booking.totalPrice ?? undefined,
         ),
     );
+  }
+
+  async findByOrganizerUserId(userId: string, status?: string): Promise<BookingWithDetails[]> {
+    return this.prisma.booking.findMany({
+      where: {
+        event: { organizer: { userId } },
+        ...(status ? { status } : {}),
+      },
+      select: {
+        id: true,
+        status: true,
+        ticketCounts: true,
+        unitPrice: true,
+        totalPrice: true,
+        createdAt: true,
+        event: { select: { id: true, title: true } },
+        user: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
   }
 
   async findEventById(eventId: string): Promise<EventInfo | null> {

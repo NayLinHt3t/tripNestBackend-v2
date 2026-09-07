@@ -1,5 +1,5 @@
 import { Booking } from "./booking.entity.js";
-import { BookingRepository } from "./booking.repository.js";
+import { BookingRepository, BookingWithDetails } from "./booking.repository.js";
 import { ValidationError, NotFoundError } from "../../shared/errors.js";
 import { Status } from "../../../generated/prisma/enums.js";
 import { ChatService } from "../chatting/chatting.service.js";
@@ -29,6 +29,13 @@ export class BookingService {
 
     return booking;
   }
+  async getBookingsByOrganizer(userId: string, status?: string): Promise<BookingWithDetails[]> {
+    if (!userId) {
+      throw new ValidationError("User ID is required");
+    }
+    return this.bookingRepository.findByOrganizerUserId(userId, status);
+  }
+
   async getBookingsByUser(userId: string): Promise<Booking[]> {
     if (!userId) {
       throw new ValidationError("User ID is required");
