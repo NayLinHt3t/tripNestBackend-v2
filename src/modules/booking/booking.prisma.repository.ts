@@ -1,4 +1,5 @@
 import { PrismaClient } from "../database/prisma.js";
+import { Status } from "../../../generated/prisma/enums.js";
 import { Booking } from "./booking.entity.js";
 import { BookingRepository, BookingWithDetails, EventInfo } from "./booking.repository.js";
 
@@ -41,10 +42,10 @@ export class PrismaBookingRepository implements BookingRepository {
   }
 
   async findByOrganizerUserId(userId: string, status?: string): Promise<BookingWithDetails[]> {
-    return this.prisma.booking.findMany({
+    const rows = await this.prisma.booking.findMany({
       where: {
         event: { organizer: { userId } },
-        ...(status ? { status } : {}),
+        ...(status ? { status: status as Status } : {}),
       },
       select: {
         id: true,
@@ -58,6 +59,7 @@ export class PrismaBookingRepository implements BookingRepository {
       },
       orderBy: { createdAt: "desc" },
     });
+    return rows as unknown as BookingWithDetails[];
   }
 
   async findEventById(eventId: string): Promise<EventInfo | null> {
