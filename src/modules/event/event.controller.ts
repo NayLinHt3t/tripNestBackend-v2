@@ -188,7 +188,7 @@ export function createEventRouter(
       });
     }
 
-    const { title, description, date, location, capacity, price, mood } =
+    const { title, description, date, location, capacity, price, mood, bookingType } =
       req.body;
     const files = Array.isArray(req.files) ? req.files : [];
 
@@ -218,6 +218,7 @@ export function createEventRouter(
       mood,
       imageUrls,
       organizerId: organizerProfile.id,
+      bookingType,
     });
 
     if (chatService) {

@@ -54,17 +54,17 @@ describe("Booking entity", () => {
     });
   });
 
-  describe("comfirmBooking", () => {
+  describe("confirmBooking", () => {
     it("sets status to CONFIRMED", () => {
       const booking = makeBooking(1, Status.PENDING);
-      booking.comfirmBooking();
+      booking.confirmBooking();
 
       expect(booking.status).toBe(Status.CONFIRMED);
     });
 
     it("is idempotent when already CONFIRMED", () => {
       const booking = makeBooking(1, Status.CONFIRMED);
-      booking.comfirmBooking();
+      booking.confirmBooking();
 
       expect(booking.status).toBe(Status.CONFIRMED);
     });

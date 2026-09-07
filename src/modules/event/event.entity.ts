@@ -6,6 +6,8 @@ export enum EventStatus {
   CANCELLED = "CANCELLED",
 }
 
+export type BookingType = "INSTANT" | "MANUAL";
+
 export interface EventImages {
   id: string;
   eventId: string;
@@ -25,6 +27,7 @@ export interface Event {
   mood?: string | null;
   organizerId?: string | null;
   status?: EventStatus;
+  bookingType?: BookingType;
   isArchived?: boolean;
   createdAt: Date;
 }
@@ -39,6 +42,7 @@ export interface CreateEventDto {
   mood?: string | null;
   imageUrls?: string[];
   organizerId: string;
+  bookingType?: BookingType;
 }
 
 export interface UpdateEventDto {

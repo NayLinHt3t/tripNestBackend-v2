@@ -43,14 +43,14 @@ export class PrismaBookingRepository implements BookingRepository {
   async findEventById(eventId: string): Promise<EventInfo | null> {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
-      select: { id: true, price: true, status: true, capacity: true },
+      select: { id: true, price: true, status: true, capacity: true, bookingType: true },
     });
     return event;
   }
 
   async countConfirmedTickets(eventId: string): Promise<number> {
     const result = await this.prisma.booking.aggregate({
-      where: { eventId, status: "CONFIRMED" },
+      where: { eventId, status: { in: ["CONFIRMED", "PENDING"] } },
       _sum: { ticketCounts: true },
     });
     return result._sum.ticketCounts ?? 0;

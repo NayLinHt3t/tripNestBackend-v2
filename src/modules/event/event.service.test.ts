@@ -97,9 +97,9 @@ describe("EventService", () => {
 
   describe("searchEvents", () => {
     it("delegates to repository when valid query is provided", async () => {
-      await service.searchEvents({ keyword: "concert" });
+      await service.searchEvents({ keyword: "concert" }, { page: 1, limit: 20 });
 
-      expect(repo.findByQuery).toHaveBeenCalledWith({ keyword: "concert" });
+      expect(repo.findByQuery).toHaveBeenCalledWith({ keyword: "concert" }, { page: 1, limit: 20 });
     });
 
     it("throws when no search criteria are provided", async () => {

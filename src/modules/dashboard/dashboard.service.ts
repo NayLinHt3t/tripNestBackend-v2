@@ -37,16 +37,10 @@ export class DashboardService {
 
     for (const booking of bookings) {
       bookingStatus[booking.status] += 1;
-      totalBookings += 1;
-      totalTickets += booking.ticketCounts;
 
       if (!booking.event) {
         continue;
       }
-
-      const unitPrice = booking.unitPrice ?? booking.event.price ?? 0;
-      const computedTotalPrice =
-        booking.totalPrice ?? unitPrice * booking.ticketCounts;
 
       const eventKey = booking.event.id;
       const existing = eventRevenueMap.get(eventKey) ?? {
@@ -58,12 +52,18 @@ export class DashboardService {
         totalTickets: 0,
       };
 
-      existing.totalBookings += 1;
-      existing.totalTickets += booking.ticketCounts;
-
       if (booking.status === Status.CONFIRMED) {
-        existing.totalRevenue += computedTotalPrice;
+        const unitPrice = booking.unitPrice ?? booking.event.price ?? 0;
+        const computedTotalPrice =
+          booking.totalPrice ?? unitPrice * booking.ticketCounts;
+
+        totalBookings += 1;
+        totalTickets += booking.ticketCounts;
         totalRevenue += computedTotalPrice;
+
+        existing.totalBookings += 1;
+        existing.totalTickets += booking.ticketCounts;
+        existing.totalRevenue += computedTotalPrice;
       }
 
       eventRevenueMap.set(eventKey, existing);

@@ -93,6 +93,7 @@ model Event {
   images      EventImages[]
   reviews     Review[]
   status     Status        @default(PENDING)
+  bookingType BookingType   @default(MANUAL)
   chatRoom    ChatRoom?
   organizer   OrganizerProfile? @relation(fields: [organizerId], references: [id])
 }
@@ -220,6 +221,11 @@ enum ApprovalStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum BookingType {
+  INSTANT
+  MANUAL
 }
 
 model InvalidatedToken {

@@ -127,40 +127,40 @@ describe("AuthService", () => {
   // ── token management ────────────────────────────────────────────────────────
 
   describe("generateToken / verifyToken", () => {
-    it("generates a verifiable JWT with correct payload", () => {
+    it("generates a verifiable JWT with correct payload", async () => {
       const token = service.generateToken("user-1", "a@b.com", ["USER"]);
-      const payload = service.verifyToken(token);
+      const payload = await service.verifyToken(token);
 
       expect(payload?.userId).toBe("user-1");
       expect(payload?.email).toBe("a@b.com");
       expect(payload?.roles).toEqual(["USER"]);
     });
 
-    it("returns null for a garbage token", () => {
-      expect(service.verifyToken("not.a.real.token")).toBeNull();
+    it("returns null for a garbage token", async () => {
+      expect(await service.verifyToken("not.a.real.token")).toBeNull();
     });
 
-    it("returns null for a blacklisted token", () => {
+    it("returns null for a blacklisted token", async () => {
       const token = service.generateToken("user-1", "a@b.com", []);
       service.logout(token);
 
-      expect(service.verifyToken(token)).toBeNull();
+      expect(await service.verifyToken(token)).toBeNull();
     });
   });
 
   describe("logout / isTokenBlacklisted", () => {
-    it("token is not blacklisted before logout", () => {
+    it("token is not blacklisted before logout", async () => {
       // Use a unique id so this token cannot collide with one blacklisted in another test
       const token = service.generateToken("fresh-user", "fresh@example.com", []);
 
-      expect(service.isTokenBlacklisted(token)).toBe(false);
+      expect(await service.isTokenBlacklisted(token)).toBe(false);
     });
 
-    it("token is blacklisted after logout", () => {
+    it("token is blacklisted after logout", async () => {
       const token = service.generateToken("logout-user", "logout@example.com", []);
       service.logout(token);
 
-      expect(service.isTokenBlacklisted(token)).toBe(true);
+      expect(await service.isTokenBlacklisted(token)).toBe(true);
     });
   });
 
@@ -237,12 +237,10 @@ describe("AuthService", () => {
       );
     });
 
-    it("throws (without revealing existence) when user is not found", async () => {
+    it("resolves silently when user is not found (avoids revealing existence)", async () => {
       vi.mocked(repo.findByEmail).mockResolvedValue(null);
 
-      await expect(service.forgotPassword("ghost@example.com")).rejects.toThrow(
-        "If this email exists, a reset link has been sent",
-      );
+      await expect(service.forgotPassword("ghost@example.com")).resolves.toBeUndefined();
     });
   });
 

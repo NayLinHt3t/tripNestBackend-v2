@@ -81,12 +81,14 @@ export class BookingService {
       throw new ValidationError("Not enough tickets available");
     }
 
+    const initialStatus = event.bookingType === "INSTANT" ? Status.CONFIRMED : Status.PENDING;
+
     const booking = new Booking(
       undefined, // Let Prisma auto-generate the ID
       userId,
       eventId,
       ticketCounts,
-      Status.PENDING,
+      initialStatus,
       undefined,
       undefined,
     );

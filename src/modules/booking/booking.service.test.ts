@@ -16,7 +16,7 @@ const makeBooking = (overrides?: Partial<Booking>): Booking =>
 const makeRepo = (overrides?: Partial<BookingRepository>): BookingRepository => ({
   findById: vi.fn().mockResolvedValue(makeBooking()),
   findByUserId: vi.fn().mockResolvedValue([makeBooking()]),
-  findEventById: vi.fn().mockResolvedValue({ id: "event-1", price: 1000, status: "CONFIRMED", capacity: 100 }),
+  findEventById: vi.fn().mockResolvedValue({ id: "event-1", price: 1000, status: "CONFIRMED", capacity: 100, bookingType: "MANUAL" }),
   countConfirmedTickets: vi.fn().mockResolvedValue(0),
   save: vi.fn().mockImplementation(async (b: Booking) => b),
   ...overrides,
@@ -79,15 +79,24 @@ describe("BookingService", () => {
   // ── createBooking ─────────────────────────────────────────────────────────────
 
   describe("createBooking", () => {
-    it("creates a booking and calculates prices", async () => {
-      vi.mocked(repo.findById).mockResolvedValue(makeBooking());
-
+    it("creates a PENDING booking for MANUAL events and calculates prices", async () => {
       const { booking } = await service.createBooking("user-1", "event-1", 3);
 
       expect(repo.save).toHaveBeenCalled();
+      expect(booking.status).toBe(Status.PENDING);
       expect(booking.ticketCounts).toBe(3);
       expect(booking.unitPrice).toBe(1000);
       expect(booking.totalPrice).toBe(3000);
+    });
+
+    it("auto-confirms booking for INSTANT events", async () => {
+      vi.mocked(repo.findEventById).mockResolvedValue({
+        id: "event-1", price: 1000, status: "CONFIRMED", capacity: 100, bookingType: "INSTANT",
+      });
+
+      const { booking } = await service.createBooking("user-1", "event-1", 2);
+
+      expect(booking.status).toBe(Status.CONFIRMED);
     });
 
     it("throws when ticket count is zero", async () => {

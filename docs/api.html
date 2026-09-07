@@ -1199,6 +1199,16 @@
                 <td class="optional">No</td>
                 <td>Image URLs for the event (max 5)</td>
               </tr>
+              <tr>
+                <td>bookingType</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>
+                  Booking confirmation mode. <code class="inline-code">MANUAL</code> (default) — organizer or admin must confirm each booking via
+                  <code class="inline-code">PATCH /api/bookings/:id/confirm</code>.
+                  <code class="inline-code">INSTANT</code> — booking is confirmed automatically on creation (payment gateway bypassed).
+                </td>
+              </tr>
             </table>
 
             <h4>Example Request (JSON)</h4>
@@ -1211,6 +1221,7 @@
   "capacity": 5000,
   "price": 99.99,
   "mood": "FESTIVE",
+  "bookingType": "INSTANT",
   "imageUrls": [
     "https://res.cloudinary.com/tripnest/events/banner.jpg"
   ]
@@ -1243,6 +1254,7 @@
   "mood": "FESTIVE",
   "organizerId": "org123456",
   "status": "PENDING",
+  "bookingType": "INSTANT",
   "createdAt": "2026-01-20T10:00:00.000Z"
 }</pre
             >
@@ -1310,6 +1322,11 @@
             <h4>Headers</h4>
             <pre>Authorization: Bearer &lt;your-jwt-token&gt;</pre>
 
+            <div class="info-box tip">
+              <strong>💡 Revenue counting:</strong> <code class="inline-code">totalRevenue</code>, <code class="inline-code">totalBookings</code>, and <code class="inline-code">totalTickets</code> only count <strong>CONFIRMED</strong> bookings.
+              <code class="inline-code">bookingStatus</code> counts all bookings by status (including PENDING and CANCELLED).
+            </div>
+
             <h4>Success Response (200)</h4>
             <pre>
 {
@@ -1345,8 +1362,8 @@
     }
   ],
   "totalRevenue": 499.95,
-  "totalBookings": 8,
-  "totalTickets": 10
+  "totalBookings": 5,
+  "totalTickets": 5
 }</pre
             >
           </div>
@@ -1531,7 +1548,12 @@
           </div>
           <div class="endpoint-body">
             <h4>Description</h4>
-            <p>Creates a booking with status <code class="inline-code">PENDING</code>. The booking must be confirmed by the organizer or admin before the user can access the event chat room. Capacity is checked atomically — if not enough tickets are available, a 400 is returned.</p>
+            <p>Creates a booking. The resulting status depends on the event's <code class="inline-code">bookingType</code>:</p>
+            <ul>
+              <li><strong>MANUAL</strong> (default) — booking is created as <code class="inline-code">PENDING</code>. The organizer or admin must confirm it via <code class="inline-code">PATCH /api/bookings/:id/confirm</code> before the user is added to the event chat room.</li>
+              <li><strong>INSTANT</strong> — booking is created as <code class="inline-code">CONFIRMED</code> immediately. No organizer action required.</li>
+            </ul>
+            <p>Both PENDING and CONFIRMED bookings count toward capacity — seats are held from the moment of booking to prevent overbooking.</p>
 
             <h4>Request Body</h4>
             <table>
@@ -1564,6 +1586,7 @@
 
             <h4>Success Response (201)</h4>
             <pre>
+// MANUAL event — organizer must confirm
 {
   "booking": {
     "id": "clx1234567890",
@@ -1574,6 +1597,20 @@
     "totalPrice": 199.98,
     "status": "PENDING"
   }
+}
+
+// INSTANT event — auto-confirmed immediately
+{
+  "booking": {
+    "id": "clx1234567890",
+    "userId": "clx0987654321",
+    "eventId": "clx1111111111",
+    "ticketCounts": 2,
+    "unitPrice": 99.99,
+    "totalPrice": 199.98,
+    "status": "CONFIRMED"
+  },
+  "chatRoomId": "room-abc123"
 }</pre>
 
             <h4>Error Responses</h4>
@@ -1598,10 +1635,13 @@
           </div>
           <div class="endpoint-body">
             <h4>Description</h4>
-            <p>Transitions booking status from <code class="inline-code">PENDING</code> to <code class="inline-code">CONFIRMED</code>. On confirmation the user is automatically added as a member of the event's chat room. Requires the <strong>ORGANIZER</strong> or <strong>ADMIN</strong> role.</p>
+            <p>Transitions a booking status from <code class="inline-code">PENDING</code> to <code class="inline-code">CONFIRMED</code>. Used for events with <code class="inline-code">bookingType: MANUAL</code>. On confirmation the user is automatically added as a member of the event's chat room and the booking revenue is reflected in the organizer dashboard. Requires the <strong>ORGANIZER</strong> or <strong>ADMIN</strong> role.</p>
 
             <div class="info-box warning">
               <strong>Role Required:</strong> Only users with the ORGANIZER or ADMIN role can confirm bookings. Regular users cannot call this endpoint.
+            </div>
+            <div class="info-box tip">
+              <strong>💡 INSTANT events:</strong> Bookings for <code class="inline-code">INSTANT</code> events are auto-confirmed on creation — this endpoint is only needed for <code class="inline-code">MANUAL</code> events.
             </div>
 
             <h4>Success Response (200)</h4>

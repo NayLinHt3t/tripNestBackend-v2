@@ -5,6 +5,7 @@ export interface EventInfo {
   price: number;
   status: string;
   capacity: number;
+  bookingType: string;
 }
 
 export interface BookingRepository {
