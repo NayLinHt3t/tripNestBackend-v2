@@ -1454,6 +1454,73 @@
           require a valid JWT token.
         </div>
 
+        <!-- Get Organizer Bookings -->
+        <div class="endpoint">
+          <div class="endpoint-header" onclick="toggleEndpoint(this)">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/bookings/organizer</span>
+            <span class="endpoint-desc">List bookings for organizer's events (organizer / admin only)</span>
+            <span class="auth-badge">Auth</span>
+          </div>
+          <div class="endpoint-body">
+            <h4>Description</h4>
+            <p>Returns all bookings across the authenticated organizer's events, including buyer name/email and event title. Use the optional <code class="inline-code">?status=PENDING</code> filter to surface bookings that need confirmation. Results are sorted newest first.</p>
+
+            <div class="info-box warning">
+              <strong>Role Required:</strong> Only users with the ORGANIZER or ADMIN role can call this endpoint.
+            </div>
+
+            <h4>Query Parameters</h4>
+            <table>
+              <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+              <tr>
+                <td>status</td>
+                <td>string</td>
+                <td class="optional">No</td>
+                <td>Filter by booking status. One of <code class="inline-code">PENDING</code>, <code class="inline-code">CONFIRMED</code>, <code class="inline-code">CANCELLED</code>. Omit to return all.</td>
+              </tr>
+            </table>
+
+            <h4>Example Requests</h4>
+            <pre>
+GET /api/bookings/organizer              — all bookings
+GET /api/bookings/organizer?status=PENDING    — pending only (needs confirmation)
+GET /api/bookings/organizer?status=CONFIRMED  — confirmed only</pre>
+
+            <h4>Success Response (200)</h4>
+            <pre>
+[
+  {
+    "id": "clx1234567890",
+    "status": "PENDING",
+    "ticketCounts": 2,
+    "unitPrice": 99.99,
+    "totalPrice": 199.98,
+    "createdAt": "2026-09-07T10:00:00.000Z",
+    "event": {
+      "id": "clx1111111111",
+      "title": "Summer Music Festival"
+    },
+    "user": {
+      "id": "clx0987654321",
+      "name": "John Doe",
+      "email": "john@example.com"
+    }
+  }
+]</pre>
+
+            <h4>Error Responses</h4>
+            <pre>
+// 403 Forbidden
+{ "error": "Only organizers or admins can view organizer bookings" }</pre>
+          </div>
+        </div>
+
         <!-- Get My Bookings -->
         <div class="endpoint">
           <div class="endpoint-header" onclick="toggleEndpoint(this)">
